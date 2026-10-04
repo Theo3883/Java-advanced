@@ -1,0 +1,69 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+.kotlin
+
+### Java build output and runtime files ###
+*.class
+*.log
+hs_err_pid*
+replay_pid*
+/bin/
+/out/
+/classes/
+
+### Maven ###
+.flattened-pom.xml
+.mvn/timing.properties
+
+### Gradle ###
+.gradle/
+gradle-app.setting
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+### Java EE / application servers ###
+*.ear
+*.war
+*.war.original
+/.deployment/
+/deploy/
+/webapps/
+
+### Spring tooling ###
+.spring-boot-devtools.properties
+.sts4-cache/
+
+### IDE metadata and workspace folders ###
+.idea/
+.vscode/
+.fleet/
+.zed/
+.metadata/
+.recommenders/
+.settings/
+*.iws
+*.iml
+*.ipr
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.springBeans
+.sts4-cache
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### Mac OS ###
+.DS_Store
