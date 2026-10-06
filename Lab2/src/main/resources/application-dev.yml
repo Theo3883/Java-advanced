@@ -1,0 +1,29 @@
+# ── Development profile ─────────────────────────────────────────────────────
+# Priority: higher than application.properties, lower than env vars / CLI args
+
+spring:
+  application:
+    name: Lab2-Dev
+
+server:
+  port: 8081
+
+# Development datasource: reads from a local CSV file
+app:
+  datasource:
+    file-path: data/products-dev.csv
+    file-format: csv
+    delimiter: ","
+    has-header: true
+
+# Actuator: expose everything in dev
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+    datasource:
+      access: unrestricted

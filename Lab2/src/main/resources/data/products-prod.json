@@ -1,0 +1,9 @@
+[
+  {"id": 1, "name": "Enterprise Server", "price": 4999.99, "category": "Hardware"},
+  {"id": 2, "name": "Database License", "price": 1299.99, "category": "Software"},
+  {"id": 3, "name": "Network Switch", "price": 799.99, "category": "Networking"},
+  {"id": 4, "name": "SSD Storage 2TB", "price": 349.99, "category": "Hardware"},
+  {"id": 5, "name": "Monitoring Suite", "price": 599.99, "category": "Software"},
+  {"id": 6, "name": "Firewall Appliance", "price": 2499.99, "category": "Security"},
+  {"id": 7, "name": "UPS Battery", "price": 299.99, "category": "Hardware"}
+]

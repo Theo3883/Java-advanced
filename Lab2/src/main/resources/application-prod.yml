@@ -1,0 +1,27 @@
+# ── Production profile ──────────────────────────────────────────────────────
+# Priority: higher than application.properties, lower than env vars / CLI args
+
+spring:
+  application:
+    name: Lab2-Prod
+
+server:
+  port: 8081
+
+# Production datasource: reads from a JSON file
+app:
+  datasource:
+    file-path: data/products-prod.json
+    file-format: json
+    delimiter: ""          # not used for JSON, kept for schema consistency
+    has-header: false      # not applicable for JSON
+
+# Actuator: expose only health and info in production
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,datasource"
+  endpoint:
+    health:
+      show-details: when-authorized
