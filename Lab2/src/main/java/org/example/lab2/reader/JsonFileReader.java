@@ -28,11 +28,10 @@ public class JsonFileReader implements FileReader {
     private static final Logger log = LoggerFactory.getLogger(JsonFileReader.class);
 
     private final DataSourceConfig config;
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public JsonFileReader(DataSourceConfig config, ObjectMapper objectMapper) {
+    public JsonFileReader(DataSourceConfig config) {
         this.config = config;
-        this.objectMapper = objectMapper;
         log.info("JsonFileReader created — will read from: {}", config.getFilePath());
     }
 
