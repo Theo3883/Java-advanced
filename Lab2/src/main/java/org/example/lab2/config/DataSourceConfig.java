@@ -4,22 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * Homework: Configuration properties for the data source.
- *
- * WHY @ConfigurationProperties over @Value?
- * ─────────────────────────────────────────
- * @ConfigurationProperties is preferred here because:
- *  1. There are multiple related properties (file-path, file-format, delimiter, has-header)
- *     that logically belong together — grouping them into a single POJO avoids scattering
- *     @Value annotations across the codebase.
- *  2. It supports type-safe binding (booleans, chars, enums) without manual conversion.
- *  3. It enables IDE autocompletion via the spring-boot-configuration-processor.
- *  4. It works seamlessly with @Profile-specific YAML files — Spring merges properties
- *     from application.properties + application-{profile}.yml automatically.
- *  5. It is easier to validate with @Validated / JSR-303 annotations.
- *
- * @Value is used in HelloController because it reads a single, simple property
- * that needs no grouping or validation — the ideal use case for @Value.
+ Configuration properties for the data source.
  */
 @Component
 @ConfigurationProperties(prefix = "app.datasource")

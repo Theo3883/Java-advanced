@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 /**
  * Represents a product record loaded from a data file.
  */
+
 public class Product {
 
     @JsonProperty("id")
