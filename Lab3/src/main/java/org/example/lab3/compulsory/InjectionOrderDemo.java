@@ -22,12 +22,12 @@ public class InjectionOrderDemo {
 
     private static final Logger log = LoggerFactory.getLogger(InjectionOrderDemo.class);
 
-    // ── 2. Field injection ────────────────────────────────────────────────────
+    //  2. Field injection
     @Autowired
     private ServiceB fieldInjected;
 
-    private final ServiceA constructorInjected; // ── 1. Constructor injection
-    private ServiceC setterInjected;            // ── 3. Setter injection
+    private final ServiceA constructorInjected; // 1. Constructor injection
+    private ServiceC setterInjected;            //  3. Setter injection
 
     @Value("${spring.application.name}")
     private String appName;                     // field injection of a @Value
@@ -39,7 +39,7 @@ public class InjectionOrderDemo {
                 fieldInjected == null); // true -> proves constructor runs BEFORE field injection
     }
 
-    // ── 3. Setter / method injection ─────────────────────────────────────────
+    //  3. Setter / method injection
     @Autowired
     public void setServiceC(ServiceC serviceC) {
         this.setterInjected = serviceC;
@@ -55,7 +55,7 @@ public class InjectionOrderDemo {
                 appName, constructorInjected.name(), fieldInjected.name(), setterInjected.name());
     }
 
-    // ── Simple inner service stubs ────────────────────────────────────────────
+    //Simple inner service
     @Component
     public static class ServiceA { public String name() { return "ServiceA"; } }
 

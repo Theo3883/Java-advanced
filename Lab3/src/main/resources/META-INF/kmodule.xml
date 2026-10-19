@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kmodule xmlns="http://www.drools.org/xsd/kmodule">
+    <!--
+        Declares a KieBase named "BorrowingRules" that scans the "rules" classpath package.
+        The stateful KieSession "BorrowingSession" is used for one evaluation at a time (dispose() after each).
+    -->
+    <kbase name="BorrowingRules" packages="rules">
+        <ksession name="BorrowingSession"/>
+    </kbase>
+</kmodule>

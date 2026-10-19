@@ -1,0 +1,204 @@
+package rules;
+
+/*
+ * ============================================================
+ * Library Borrowing Rules – borrowing-rules.drl
+ * ============================================================
+ * Inputs  (facts inserted into the session):
+ *   BorrowingRequest  – who wants what (member role, counts, book type, availability)
+ *   BorrowingDecision – mutable result object populated by the rules
+ *
+ * Rule evaluation order is controlled by salience (higher = first).
+ * Once a rule sets decided=true, all lower-salience rules skip via
+ * the "decided == false" guard — ensuring exactly one decision fires.
+ *
+ * To add a new membership tier or restriction, just add new rules here.
+ * The BorrowingService implementation never needs to change.
+ * ============================================================
+ */
+
+import org.example.lab3.drools.model.BorrowingRequest;
+import org.example.lab3.drools.model.BorrowingDecision;
+import org.example.lab3.domain.MemberRole;
+import org.example.lab3.domain.BookType;
+
+
+// DENIAL RULES  (salience 80–100, evaluated first)
+
+
+rule "Deny – book not available"
+    salience 100
+    when
+        $req : BorrowingRequest( bookAvailable == false )
+        $dec : BorrowingDecision( decided == false )
+    then
+        modify( $dec ) {
+            setAllowed( false ),
+            setReason( "Book '" + $req.getBookTitle() + "' is not currently available" ),
+            setDecided( true )
+        }
+end
+
+rule "Deny – RARE books are PREMIUM-only"
+    salience 90
+    when
+        $req : BorrowingRequest( bookType == BookType.RARE, role != MemberRole.PREMIUM )
+        $dec : BorrowingDecision( decided == false )
+    then
+        modify( $dec ) {
+            setAllowed( false ),
+            setReason( "Rare books may only be borrowed by PREMIUM members" ),
+            setDecided( true )
+        }
+end
+
+rule "Deny – REFERENCE books not available to STUDENTs"
+    salience 85
+    when
+        $req : BorrowingRequest( bookType == BookType.REFERENCE, role == MemberRole.STUDENT )
+        $dec : BorrowingDecision( decided == false )
+    then
+        modify( $dec ) {
+            setAllowed( false ),
+            setReason( "Reference books are restricted to REGULAR and PREMIUM members" ),
+            setDecided( true )
+        }
+end
+
+rule "Deny – STUDENT borrowing limit exceeded (max 2)"
+    salience 80
+    when
+        $req : BorrowingRequest( role == MemberRole.STUDENT, borrowedCount >= 2 )
+        $dec : BorrowingDecision( decided == false )
+    then
+        modify( $dec ) {
+            setAllowed( false ),
+            setReason( "STUDENT limit reached – maximum 2 books at a time" ),
+            setDecided( true )
+        }
+end
+
+rule "Deny – REGULAR borrowing limit exceeded (max 4)"
+    salience 80
+    when
+        $req : BorrowingRequest( role == MemberRole.REGULAR, borrowedCount >= 4 )
+        $dec : BorrowingDecision( decided == false )
+    then
+        modify( $dec ) {
+            setAllowed( false ),
+            setReason( "REGULAR limit reached – maximum 4 books at a time" ),
+            setDecided( true )
+        }
+end
+
+rule "Deny – PREMIUM borrowing limit exceeded (max 8)"
+    salience 80
+    when
+        $req : BorrowingRequest( role == MemberRole.PREMIUM, borrowedCount >= 8 )
+        $dec : BorrowingDecision( decided == false )
+    then
+        modify( $dec ) {
+            setAllowed( false ),
+            setReason( "PREMIUM limit reached – maximum 8 books at a time" ),
+            setDecided( true )
+        }
+end
+
+
+
+// APPROVAL RULES – STUDENT  (salience 10)
+
+
+rule "Approve – STUDENT borrows STANDARD book (14 days)"
+    salience 10
+    when
+        $req : BorrowingRequest( role == MemberRole.STUDENT, bookType == BookType.STANDARD )
+        $dec : BorrowingDecision( decided == false )
+    then
+        modify( $dec ) {
+            setAllowed( true ),
+            setReason( "Approved" ),
+            setBorrowingPeriodDays( 14 ),
+            setDecided( true )
+        }
+end
+
+
+
+// APPROVAL RULES – REGULAR  (salience 10)
+
+
+rule "Approve – REGULAR borrows STANDARD book (21 days)"
+    salience 10
+    when
+        $req : BorrowingRequest( role == MemberRole.REGULAR, bookType == BookType.STANDARD )
+        $dec : BorrowingDecision( decided == false )
+    then
+        modify( $dec ) {
+            setAllowed( true ),
+            setReason( "Approved" ),
+            setBorrowingPeriodDays( 21 ),
+            setDecided( true )
+        }
+end
+
+rule "Approve – REGULAR borrows REFERENCE book (10 days)"
+    salience 10
+    when
+        $req : BorrowingRequest( role == MemberRole.REGULAR, bookType == BookType.REFERENCE )
+        $dec : BorrowingDecision( decided == false )
+    then
+        modify( $dec ) {
+            setAllowed( true ),
+            setReason( "Approved – reference books have a shorter loan period" ),
+            setBorrowingPeriodDays( 10 ),
+            setDecided( true )
+        }
+end
+
+
+
+// APPROVAL RULES – PREMIUM  (salience 10)
+
+
+rule "Approve – PREMIUM borrows STANDARD book (30 days)"
+    salience 10
+    when
+        $req : BorrowingRequest( role == MemberRole.PREMIUM, bookType == BookType.STANDARD )
+        $dec : BorrowingDecision( decided == false )
+    then
+        modify( $dec ) {
+            setAllowed( true ),
+            setReason( "Approved" ),
+            setBorrowingPeriodDays( 30 ),
+            setDecided( true )
+        }
+end
+
+rule "Approve – PREMIUM borrows REFERENCE book (21 days)"
+    salience 10
+    when
+        $req : BorrowingRequest( role == MemberRole.PREMIUM, bookType == BookType.REFERENCE )
+        $dec : BorrowingDecision( decided == false )
+    then
+        modify( $dec ) {
+            setAllowed( true ),
+            setReason( "Approved" ),
+            setBorrowingPeriodDays( 21 ),
+            setDecided( true )
+        }
+end
+
+rule "Approve – PREMIUM borrows RARE book (7 days)"
+    salience 10
+    when
+        $req : BorrowingRequest( role == MemberRole.PREMIUM, bookType == BookType.RARE )
+        $dec : BorrowingDecision( decided == false )
+    then
+        modify( $dec ) {
+            setAllowed( true ),
+            setReason( "Approved – rare books have a strictly limited loan period" ),
+            setBorrowingPeriodDays( 7 ),
+            setDecided( true )
+        }
+end
