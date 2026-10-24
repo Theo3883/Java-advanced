@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: vros-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vros
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - vros_pgdata:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d vros"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  vros_pgdata:
