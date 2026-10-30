@@ -1,0 +1,42 @@
+@baseUrl = http://localhost:8080/api/v1/deliveries
+
+### 1. Create Delivery for Customer (Assumes customer with ID 1 exists)
+POST {{baseUrl}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "customerId": 1,
+  "quantity": 20,
+  "notes": "Medical supplies - priority express delivery"
+}
+
+> {%
+    client.global.set("lastDeliveryId", response.body.id);
+%}
+
+### 2. List All Deliveries
+GET {{baseUrl}}
+Accept: application/json
+
+### 3. Get Delivery by ID
+GET {{baseUrl}}/{{lastDeliveryId}}
+Accept: application/json
+
+### 4. Discover Deliveries for Customer 1 (Follow HATEOAS relation)
+GET {{baseUrl}}/customer/1
+Accept: application/json
+
+### 5. Update Delivery
+PUT {{baseUrl}}/{{lastDeliveryId}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "customerId": 1,
+  "quantity": 25,
+  "notes": "Updated: Deliver before 10:00 AM"
+}
+
+### 6. Delete Delivery
+DELETE {{baseUrl}}/{{lastDeliveryId}}

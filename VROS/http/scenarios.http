@@ -1,0 +1,42 @@
+@baseUrl = http://localhost:8080/api/v1/scenarios
+
+### 1. Create Optimization Scenario linking Vehicles and Deliveries (ManyToMany)
+POST {{baseUrl}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Bucharest Sector 1 High-Density Route",
+  "vehicleIds": [1],
+  "deliveryIds": [1]
+}
+
+> {%
+    client.global.set("lastScenarioId", response.body.id);
+%}
+
+### 2. List All Scenarios
+GET {{baseUrl}}
+Accept: application/json
+
+### 3. Get Scenario by ID (Fetches Many-to-Many vehicleIds and deliveryIds)
+GET {{baseUrl}}/{{lastScenarioId}}
+Accept: application/json
+
+### 4. Search Scenarios by Keyword
+GET {{baseUrl}}/search?keyword=Sector
+Accept: application/json
+
+### 5. Update Scenario Associations
+PUT {{baseUrl}}/{{lastScenarioId}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Bucharest Sector 1 High-Density Route - Updated",
+  "vehicleIds": [1],
+  "deliveryIds": []
+}
+
+### 6. Delete Scenario
+DELETE {{baseUrl}}/{{lastScenarioId}}

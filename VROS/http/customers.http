@@ -1,0 +1,86 @@
+@baseUrl = http://localhost:8080/api/v1/customers
+
+### 1. Create Customer (JSON)
+POST {{baseUrl}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Maria Ionescu",
+  "email": "maria.ionescu.{{$timestamp}}@example.com",
+  "phone": "+40744112233",
+  "address": "Strada Lipscani 21, Bucuresti",
+  "lat": 44.4312,
+  "lng": 26.1018
+}
+
+> {%
+    client.global.set("lastCustomerId", response.body.id);
+    client.global.set("lastCustomerEmail", response.body.email);
+%}
+
+### 2. List All Customers
+GET {{baseUrl}}
+Accept: application/json
+
+### 3. Get Customer by ID (With HATEOAS links: self, all-customers, deliveries)
+GET {{baseUrl}}/{{lastCustomerId}}
+Accept: application/json
+
+> {%
+    client.global.set("customerEtag", response.headers.valueOf("ETag"));
+%}
+
+### 4. Search Customers by Name Keyword
+GET {{baseUrl}}/search?keyword=Maria
+Accept: application/json
+
+### 5. Update Customer
+PUT {{baseUrl}}/{{lastCustomerId}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Maria Ionescu-Popa",
+  "email": "{{lastCustomerEmail}}",
+  "phone": "+40755998877",
+  "address": "Bulevardul Magheru 15, Bucuresti",
+  "lat": 44.4420,
+  "lng": 26.0990
+}
+
+### 6. Content Negotiation: Get Customer as XML
+GET {{baseUrl}}/{{lastCustomerId}}
+Accept: application/xml
+
+### 7. Content Negotiation: Create Customer from XML
+POST {{baseUrl}}
+Content-Type: application/xml
+Accept: application/xml
+
+<customer>
+    <name>Bogdan Radu</name>
+    <email>bogdan.radu.{{$timestamp}}@example.com</email>
+    <phone>+40712345678</phone>
+    <address>Strada Eminescu 10</address>
+    <lat>44.4450</lat>
+    <lng>26.1050</lng>
+</customer>
+
+### 8. ETag Conditional Request (Expects 304 Not Modified)
+GET {{baseUrl}}/{{lastCustomerId}}
+If-None-Match: {{customerEtag}}
+
+### 9. Bean Validation Failure (Invalid email & latitude)
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "name": "",
+  "email": "invalid-email",
+  "lat": 105.0,
+  "lng": 26.0
+}
+
+### 10. Delete Customer
+DELETE {{baseUrl}}/{{lastCustomerId}}

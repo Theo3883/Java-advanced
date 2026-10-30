@@ -18,6 +18,11 @@
         <java.version>17</java.version>
         <jmh.version>1.37</jmh.version>
         <datafaker.version>2.4.0</datafaker.version>
+
+        <!-- Database connection properties (overridden by .env.local, CLI, or env vars) -->
+        <db.uri>jdbc:postgresql://localhost:5432/vros</db.uri>
+        <db.user>postgres</db.user>
+        <db.pass>postgres</db.pass>
     </properties>
 
     <dependencies>
@@ -181,6 +186,40 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>properties-maven-plugin</artifactId>
+                <version>1.2.1</version>
+                <executions>
+                    <execution>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>read-project-properties</goal>
+                        </goals>
+                        <configuration>
+                            <files>
+                                <file>${project.basedir}/.env.local</file>
+                            </files>
+                            <quiet>true</quiet>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.liquibase</groupId>
+                <artifactId>liquibase-maven-plugin</artifactId>
+                <version>${liquibase.version}</version>
+                <configuration>
+                    <changeLogFile>db/changelog/db.changelog-master.xml</changeLogFile>
+                    <searchPath>${project.basedir},${project.basedir}/src/main/resources</searchPath>
+                    <propertyFile>.env.local</propertyFile>
+                    <propertyFileWillOverride>true</propertyFileWillOverride>
+                    <url>${db.uri}</url>
+                    <username>${db.user}</username>
+                    <password>${db.pass}</password>
+                    <driver>org.postgresql.Driver</driver>
+                </configuration>
             </plugin>
         </plugins>
     </build>

@@ -40,27 +40,27 @@ public class DemoRunner implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        log.info("==================================================================");
-        log.info("             VROS - FULL DEMO & BENCHMARK RUNNER                  ");
-        log.info("==================================================================");
-
-        // Step 0: Ensure database has sample records
-        InitialDataDemo.run(depotService, driverService, customerService, vehicleService, deliveryService);
-
-        // Demo 1: SOLID Service Layer & Repository Queries
-        ServiceQueriesDemo.run(driverService, customerService, vehicleService, deliveryService);
-
-        // Demo 2: Dynamic Criteria API Searches with multiple filters
-        CriteriaSearchDemo.run(deliverySearchService);
-
-        // Demo 3: Application-level Caching Performance (Cold vs Warm)
-        CachePerformanceDemo.run(deliveryService, applicationContext);
-
-        // Demo 4: JMH Microbenchmark Execution
-        JmhBenchmarkDemo.run(applicationContext);
-
-        log.info("==================================================================");
-        log.info("             VROS DEMO & BENCHMARK COMPLETED                      ");
-        log.info("==================================================================");
+//        log.info("==================================================================");
+//        log.info("             VROS - FULL DEMO & BENCHMARK RUNNER                  ");
+//        log.info("==================================================================");
+//
+//        // Step 0: Ensure database has sample records
+//        InitialDataDemo.run(depotService, driverService, customerService, vehicleService, deliveryService);
+//
+//        // Demo 1: SOLID Service Layer & Repository Queries
+//        ServiceQueriesDemo.run(driverService, customerService, vehicleService, deliveryService);
+//
+//        // Demo 2: Dynamic Criteria API Searches with multiple filters
+//        CriteriaSearchDemo.run(deliverySearchService);
+//
+//        // Demo 3: Application-level Caching Performance (Cold vs Warm)
+//        CachePerformanceDemo.run(deliveryService, applicationContext);
+//
+//        // Demo 4: JMH Microbenchmark Execution
+//        JmhBenchmarkDemo.run(applicationContext);
+//
+//        log.info("==================================================================");
+//        log.info("             VROS DEMO & BENCHMARK COMPLETED                      ");
+//        log.info("==================================================================");
     }
 }

@@ -1,0 +1,42 @@
+@baseUrl = http://localhost:8080/api/v1/vehicles
+
+### 1. Create Vehicle (Depot ID omitted - Single Depot Assumption)
+POST {{baseUrl}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Ford Transit Electric",
+  "capacity": 1200,
+  "available": true
+}
+
+> {%
+    client.global.set("lastVehicleId", response.body.id);
+%}
+
+### 2. List All Vehicles
+GET {{baseUrl}}
+Accept: application/json
+
+### 3. List Available Vehicles
+GET {{baseUrl}}/available
+Accept: application/json
+
+### 4. Get Vehicle by ID
+GET {{baseUrl}}/{{lastVehicleId}}
+Accept: application/json
+
+### 5. Update Vehicle Capacity & Availability
+PUT {{baseUrl}}/{{lastVehicleId}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Ford Transit Electric - Upgraded",
+  "capacity": 1400,
+  "available": false
+}
+
+### 6. Delete Vehicle
+DELETE {{baseUrl}}/{{lastVehicleId}}
