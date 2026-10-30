@@ -17,7 +17,6 @@ import org.example.vros.repository.VehicleRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -54,7 +53,6 @@ public class DataSeeder implements CommandLineRunner {
     private final DeliveryRepository deliveryRepository;
 
     @Override
-    @Transactional
     public void run(String... args) {
         log.info("=== DataSeeder starting with DataFaker (profile=seed) ===");
 
@@ -72,6 +70,7 @@ public class DataSeeder implements CommandLineRunner {
                     .build());
         }
         depots = depotRepository.saveAll(depots);
+        log.info(">> Successfully committed {} depots.", depots.size());
 
         // 2. Drivers
         log.info("Seeding {} drivers in batches of {}...", DRIVER_COUNT, BATCH_SIZE);
@@ -91,6 +90,7 @@ public class DataSeeder implements CommandLineRunner {
         if (!driverBatch.isEmpty()) {
             newlyCreatedDrivers.addAll(driverRepository.saveAll(driverBatch));
         }
+        log.info(">> Successfully committed {} drivers.", newlyCreatedDrivers.size());
 
         // 3. Customers
         log.info("Seeding {} customers in batches of {}...", CUSTOMER_COUNT, BATCH_SIZE);
@@ -112,14 +112,15 @@ public class DataSeeder implements CommandLineRunner {
         if (!customerBatch.isEmpty()) {
             newlyCreatedCustomers.addAll(customerRepository.saveAll(customerBatch));
         }
+        log.info(">> Successfully committed {} customers.", newlyCreatedCustomers.size());
 
         // 4. Vehicles
         log.info("Seeding {} vehicles in batches of {}...", VEHICLE_COUNT, BATCH_SIZE);
         List<Vehicle> vehicleBatch = new ArrayList<>(BATCH_SIZE);
         int driverIdx = 0;
+        int vehiclesCommitted = 0;
         for (int i = 0; i < VEHICLE_COUNT; i++) {
             Depot depot = depots.get(i % depots.size());
-            // Assign each driver from newlyCreatedDrivers at most once
             Driver driver = (random.nextDouble() < 0.7 && driverIdx < newlyCreatedDrivers.size())
                     ? newlyCreatedDrivers.get(driverIdx++) : null;
 
@@ -132,16 +133,20 @@ public class DataSeeder implements CommandLineRunner {
                     .build());
             if (vehicleBatch.size() == BATCH_SIZE) {
                 vehicleRepository.saveAll(vehicleBatch);
+                vehiclesCommitted += vehicleBatch.size();
                 vehicleBatch.clear();
             }
         }
         if (!vehicleBatch.isEmpty()) {
             vehicleRepository.saveAll(vehicleBatch);
+            vehiclesCommitted += vehicleBatch.size();
         }
+        log.info(">> Successfully committed {} vehicles.", vehiclesCommitted);
 
         // 5. Deliveries
         log.info("Seeding {} deliveries in batches of {}...", DELIVERY_COUNT, BATCH_SIZE);
         List<Delivery> deliveryBatch = new ArrayList<>(BATCH_SIZE);
+        int deliveriesCommitted = 0;
         for (int i = 0; i < DELIVERY_COUNT; i++) {
             Customer customer = newlyCreatedCustomers.get(random.nextInt(newlyCreatedCustomers.size()));
             deliveryBatch.add(Delivery.builder()
@@ -154,14 +159,17 @@ public class DataSeeder implements CommandLineRunner {
                     .build());
             if (deliveryBatch.size() == BATCH_SIZE) {
                 deliveryRepository.saveAll(deliveryBatch);
+                deliveriesCommitted += deliveryBatch.size();
                 deliveryBatch.clear();
             }
         }
         if (!deliveryBatch.isEmpty()) {
             deliveryRepository.saveAll(deliveryBatch);
+            deliveriesCommitted += deliveryBatch.size();
         }
+        log.info(">> Successfully committed {} deliveries.", deliveriesCommitted);
 
-        log.info("=== DataSeeder finished successfully ===");
+        log.info("=== DataSeeder finished successfully: all records committed to PostgreSQL ===");
     }
 
     private Coordinates randomCoords(Random random) {

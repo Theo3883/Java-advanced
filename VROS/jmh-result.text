@@ -1,5 +1,5 @@
-Benchmark                                 Mode  Cnt  Score    Error  Units
-CacheBenchmark.customerFindAll_CacheCold  avgt    3  0.514 ±  0.567  ms/op
-CacheBenchmark.customerFindAll_CacheWarm  avgt    3  0.001 ±  0.001  ms/op
-CacheBenchmark.deliveryFindAll_CacheCold  avgt    3  0.463 ±  0.040  ms/op
-CacheBenchmark.deliveryFindAll_CacheWarm  avgt    3  0.001 ±  0.001  ms/op
+Benchmark                                 Mode  Cnt    Score    Error  Units
+CacheBenchmark.customerFindAll_CacheCold  avgt    3   33.215 ± 11.493  ms/op
+CacheBenchmark.customerFindAll_CacheWarm  avgt    3    0.001 ±  0.001  ms/op
+CacheBenchmark.deliveryFindAll_CacheCold  avgt    3  170.315 ± 87.414  ms/op
+CacheBenchmark.deliveryFindAll_CacheWarm  avgt    3    0.001 ±  0.001  ms/op

@@ -24,7 +24,7 @@ import org.springframework.stereotype.Component;
  * Delegates each demo example to its dedicated class in org.example.vros.runner.demos.
  */
 @Component
-@Profile("!seed")
+@Profile("!seed & !test")
 @Order(10)
 @RequiredArgsConstructor
 @Slf4j

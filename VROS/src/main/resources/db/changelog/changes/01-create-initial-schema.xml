@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- 1. Depots -->
+    <changeSet id="01-create-depots" author="vros">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="depots"/>
+            </not>
+        </preConditions>
+        <createTable tableName="depots">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_depots"/>
+            </column>
+            <column name="name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="lat" type="DOUBLE PRECISION">
+                <constraints nullable="false"/>
+            </column>
+            <column name="lng" type="DOUBLE PRECISION">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- 2. Drivers -->
+    <changeSet id="02-create-drivers" author="vros">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="drivers"/>
+            </not>
+        </preConditions>
+        <createTable tableName="drivers">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_drivers"/>
+            </column>
+            <column name="name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email" type="VARCHAR(150)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uk_drivers_email"/>
+            </column>
+            <column name="phone" type="VARCHAR(30)"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 3. Customers -->
+    <changeSet id="03-create-customers" author="vros">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="customers"/>
+            </not>
+        </preConditions>
+        <createTable tableName="customers">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_customers"/>
+            </column>
+            <column name="name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email" type="VARCHAR(150)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uk_customers_email"/>
+            </column>
+            <column name="phone" type="VARCHAR(30)"/>
+            <column name="address" type="VARCHAR(255)"/>
+            <column name="lat" type="DOUBLE PRECISION">
+                <constraints nullable="false"/>
+            </column>
+            <column name="lng" type="DOUBLE PRECISION">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- 4. Vehicles -->
+    <changeSet id="04-create-vehicles" author="vros">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="vehicles"/>
+            </not>
+        </preConditions>
+        <createTable tableName="vehicles">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_vehicles"/>
+            </column>
+            <column name="name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="capacity" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="available" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="depot_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_vehicles_depot" references="depots(id)"/>
+            </column>
+            <column name="driver_id" type="BIGINT">
+                <constraints unique="true" uniqueConstraintName="vehicles_driver_id_key" foreignKeyName="fk_vehicles_driver" references="drivers(id)"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- 5. Deliveries -->
+    <changeSet id="05-create-deliveries" author="vros">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="deliveries"/>
+            </not>
+        </preConditions>
+        <createTable tableName="deliveries">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_deliveries"/>
+            </column>
+            <column name="customer_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_deliveries_customer" references="customers(id)"/>
+            </column>
+            <column name="quantity" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="notes" type="TEXT"/>
+            <column name="timestamp" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- 6. Indexes -->
+    <changeSet id="06-create-indexes" author="vros">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="idx_deliveries_customer_id"/>
+            </not>
+        </preConditions>
+        <createIndex tableName="deliveries" indexName="idx_deliveries_customer_id">
+            <column name="customer_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="07-create-idx-deliveries-timestamp" author="vros">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="idx_deliveries_timestamp"/>
+            </not>
+        </preConditions>
+        <createIndex tableName="deliveries" indexName="idx_deliveries_timestamp">
+            <column name="timestamp"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="08-create-idx-vehicles-depot" author="vros">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="idx_vehicles_depot_id"/>
+            </not>
+        </preConditions>
+        <createIndex tableName="vehicles" indexName="idx_vehicles_depot_id">
+            <column name="depot_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="09-create-idx-customers-coords" author="vros">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="idx_customers_coords"/>
+            </not>
+        </preConditions>
+        <createIndex tableName="customers" indexName="idx_customers_coords">
+            <column name="lat"/>
+            <column name="lng"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

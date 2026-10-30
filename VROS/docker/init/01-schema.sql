@@ -1,14 +1,5 @@
--- VROS Schema 
-
-
-DROP TABLE IF EXISTS deliveries CASCADE;
-DROP TABLE IF EXISTS vehicles    CASCADE;
-DROP TABLE IF EXISTS drivers     CASCADE;
-DROP TABLE IF EXISTS customers   CASCADE;
-DROP TABLE IF EXISTS depots      CASCADE;
-
 -- Depots
-CREATE TABLE depots (
+CREATE TABLE IF NOT EXISTS depots (
     id   BIGSERIAL PRIMARY KEY,
     name VARCHAR(100)       NOT NULL,
     lat  DOUBLE PRECISION   NOT NULL,
@@ -16,7 +7,7 @@ CREATE TABLE depots (
 );
 
 -- Drivers
-CREATE TABLE drivers (
+CREATE TABLE IF NOT EXISTS drivers (
     id    BIGSERIAL PRIMARY KEY,
     name  VARCHAR(100) NOT NULL,
     email VARCHAR(150) NOT NULL UNIQUE,
@@ -24,7 +15,7 @@ CREATE TABLE drivers (
 );
 
 -- Customers
-CREATE TABLE customers (
+CREATE TABLE IF NOT EXISTS customers (
     id      BIGSERIAL PRIMARY KEY,
     name    VARCHAR(100)     NOT NULL,
     email   VARCHAR(150)     NOT NULL UNIQUE,
@@ -35,7 +26,7 @@ CREATE TABLE customers (
 );
 
 -- Vehicles
-CREATE TABLE vehicles (
+CREATE TABLE IF NOT EXISTS vehicles (
     id        BIGSERIAL PRIMARY KEY,
     name      VARCHAR(100) NOT NULL,
     capacity  INTEGER      NOT NULL CHECK (capacity > 0),
@@ -45,7 +36,7 @@ CREATE TABLE vehicles (
 );
 
 -- Deliveries
-CREATE TABLE deliveries (
+CREATE TABLE IF NOT EXISTS deliveries (
     id          BIGSERIAL PRIMARY KEY,
     customer_id BIGINT    NOT NULL REFERENCES customers(id),
     quantity    INTEGER   NOT NULL CHECK (quantity > 0),
@@ -53,8 +44,28 @@ CREATE TABLE deliveries (
     timestamp   TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- Indexes 
-CREATE INDEX idx_deliveries_customer_id ON deliveries(customer_id);
-CREATE INDEX idx_deliveries_timestamp ON deliveries(timestamp);
-CREATE INDEX idx_vehicles_depot_id ON vehicles(depot_id);
-CREATE INDEX idx_customers_coords ON customers(lat, lng);
+-- Indexes to boost query & benchmark performance
+CREATE INDEX IF NOT EXISTS idx_deliveries_customer_id ON deliveries(customer_id);
+CREATE INDEX IF NOT EXISTS idx_deliveries_timestamp ON deliveries(timestamp);
+CREATE INDEX IF NOT EXISTS idx_vehicles_depot_id ON vehicles(depot_id);
+CREATE INDEX IF NOT EXISTS idx_customers_coords ON customers(lat, lng);
+
+-- Scenarios
+CREATE TABLE IF NOT EXISTS scenarios (
+    id   BIGSERIAL PRIMARY KEY,
+    name VARCHAR(200) NOT NULL
+);
+
+-- Many-to-many: Scenario <-> Vehicle
+CREATE TABLE IF NOT EXISTS scenario_vehicles (
+    scenario_id BIGINT NOT NULL REFERENCES scenarios(id) ON DELETE CASCADE,
+    vehicle_id  BIGINT NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+    PRIMARY KEY (scenario_id, vehicle_id)
+);
+
+-- Many-to-many: Scenario <-> Delivery
+CREATE TABLE IF NOT EXISTS scenario_deliveries (
+    scenario_id BIGINT NOT NULL REFERENCES scenarios(id) ON DELETE CASCADE,
+    delivery_id BIGINT NOT NULL REFERENCES deliveries(id) ON DELETE CASCADE,
+    PRIMARY KEY (scenario_id, delivery_id)
+);

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- 1. Scenarios Table -->
+    <changeSet id="10-create-scenarios" author="vros">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="scenarios"/>
+            </not>
+        </preConditions>
+        <createTable tableName="scenarios">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_scenarios"/>
+            </column>
+            <column name="name" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- 2. Scenario-Vehicles Many-to-Many Join Table -->
+    <changeSet id="11-create-scenario-vehicles" author="vros">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="scenario_vehicles"/>
+            </not>
+        </preConditions>
+        <createTable tableName="scenario_vehicles">
+            <column name="scenario_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_scen_veh_scenario" references="scenarios(id)" deleteCascade="true"/>
+            </column>
+            <column name="vehicle_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_scen_veh_vehicle" references="vehicles(id)" deleteCascade="true"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="scenario_vehicles" columnNames="scenario_id, vehicle_id" constraintName="pk_scenario_vehicles"/>
+    </changeSet>
+
+    <!-- 3. Scenario-Deliveries Many-to-Many Join Table -->
+    <changeSet id="12-create-scenario-deliveries" author="vros">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="scenario_deliveries"/>
+            </not>
+        </preConditions>
+        <createTable tableName="scenario_deliveries">
+            <column name="scenario_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_scen_del_scenario" references="scenarios(id)" deleteCascade="true"/>
+            </column>
+            <column name="delivery_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_scen_del_delivery" references="deliveries(id)" deleteCascade="true"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="scenario_deliveries" columnNames="scenario_id, delivery_id" constraintName="pk_scenario_deliveries"/>
+    </changeSet>
+
+</databaseChangeLog>
