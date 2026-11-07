@@ -25,4 +25,20 @@ public interface ScenarioJpaRepository extends JpaRepository<ScenarioEntity, Lon
     @EntityGraph(attributePaths = {"vehicles", "deliveries"})
     @Query("SELECT s FROM ScenarioEntity s WHERE s.id = :id")
     Optional<ScenarioEntity> findByIdWithAssociations(@Param("id") Long id);
+
+    /**
+     * True when the delivery is part of a scenario whose vehicles include one driven
+     * by the driver identified by the given Keycloak subject.
+     */
+    @Query("""
+            SELECT CASE WHEN COUNT(s) > 0 THEN TRUE ELSE FALSE END
+            FROM ScenarioEntity s
+            JOIN s.deliveries d
+            JOIN s.vehicles v
+            JOIN v.driver dr
+            JOIN dr.user u
+            WHERE d.id = :deliveryId AND u.keycloakSubject = :subject
+            """)
+    boolean existsByDeliveryIdAndDriverSubject(@Param("deliveryId") Long deliveryId,
+                                               @Param("subject") String subject);
 }

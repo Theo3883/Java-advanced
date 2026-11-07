@@ -19,6 +19,7 @@ import org.vros.domain.model.Coordinates;
 import org.vros.application.service.CustomerService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -47,6 +48,7 @@ public class CustomerController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @ownershipChecker.isCustomerOwner(authentication, #id)")
     @Operation(summary = "Get a customer by ID with HATEOAS discovery links")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Found",
@@ -87,6 +89,7 @@ public class CustomerController {
     }
 
     @PutMapping(value = "/{id}", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    @PreAuthorize("hasRole('ADMIN') or @ownershipChecker.isCustomerOwner(authentication, #id)")
     @Operation(summary = "Update a customer")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Updated"),

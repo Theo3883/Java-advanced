@@ -1,0 +1,96 @@
+### VROS - Keycloak Authentication & Authorization
+### Requires: docker compose up db keycloak
+### Keycloak admin console: http://localhost:8081 (admin / admin)
+
+@keycloak = http://localhost:8081
+@realm = vros
+@api = http://localhost:8080
+
+### 1. Authenticate as ADMIN via Keycloak Token Endpoint
+POST {{keycloak}}/realms/{{realm}}/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=vros-api&username=admin_user&password=admin123!&scope=openid
+
+> {%
+    client.global.set("adminToken", response.body.access_token);
+%}
+
+### 2. Authenticate as CUSTOMER via Keycloak Token Endpoint
+POST {{keycloak}}/realms/{{realm}}/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=vros-api&username=customer_user&password=customer123!&scope=openid
+
+> {%
+    client.global.set("customerToken", response.body.access_token);
+%}
+
+### 3. Authenticate as DRIVER via Keycloak Token Endpoint
+POST {{keycloak}}/realms/{{realm}}/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=vros-api&username=driver_user&password=driver123!&scope=openid
+
+> {%
+    client.global.set("driverToken", response.body.access_token);
+%}
+
+### 4. Admin Access: List All Customers (Allowed -> 200)
+GET {{api}}/api/v1/customers
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### 5. Customer Access: Attempt to List All Customers (Expects 403 Forbidden)
+GET {{api}}/api/v1/customers
+Authorization: Bearer {{customerToken}}
+Accept: application/json
+
+### 6. Anonymous Access: Attempt to Create Delivery (Expects 401 Unauthorized)
+POST {{api}}/api/v1/deliveries
+Content-Type: application/json
+
+{
+  "customerId": 1,
+  "quantity": 100
+}
+
+### 7. Current User: Get Synchronized Profile (Any authenticated role)
+GET {{api}}/api/v1/users/me
+Authorization: Bearer {{customerToken}}
+Accept: application/json
+
+### 8. Customer Self-Service Onboarding (ROLE_CUSTOMER only)
+POST {{api}}/api/v1/users/me/customer-profile
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "VROS Customer",
+  "email": "customer@vros.com",
+  "phone": "+40744112233",
+  "address": "Strada Lipscani 21, Bucuresti",
+  "lat": 44.4312,
+  "lng": 26.1018
+}
+
+### 9. Driver Access: List Assigned Vehicle Fleet (Allowed -> 200)
+GET {{api}}/api/v1/vehicles
+Authorization: Bearer {{driverToken}}
+Accept: application/json
+
+### 10. Customer Access: Attempt to List Vehicles (Expects 403 Forbidden)
+GET {{api}}/api/v1/vehicles
+Authorization: Bearer {{customerToken}}
+Accept: application/json
+
+### 11. Admin Access: List All Deliveries (Allowed -> 200)
+GET {{api}}/api/v1/deliveries
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### 12. Expired / Malformed Token (Expects 401 Unauthorized)
+GET {{api}}/api/v1/customers
+Authorization: Bearer not-a-valid-jwt
+Accept: application/json

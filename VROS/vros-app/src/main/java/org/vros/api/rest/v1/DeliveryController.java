@@ -10,10 +10,13 @@ import org.vros.api.dto.response.DeliveryResponse;
 import org.vros.domain.exception.ResourceNotFoundException;
 import org.vros.domain.model.Customer;
 import org.vros.domain.model.Delivery;
+import org.vros.domain.model.Driver;
 import org.vros.application.service.CustomerService;
 import org.vros.application.service.DeliveryService;
+import org.vros.application.service.DriverService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -29,6 +32,7 @@ public class DeliveryController {
 
     private final DeliveryService deliveryService;
     private final CustomerService customerService;
+    private final DriverService driverService;
 
     @GetMapping
     @Operation(summary = "List all deliveries")
@@ -37,6 +41,8 @@ public class DeliveryController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @ownershipChecker.isDeliveryOwner(authentication, #id) "
+            + "or @ownershipChecker.isDeliveryDriver(authentication, #id)")
     @Operation(summary = "Get a delivery by ID")
     public DeliveryResponse getById(@PathVariable Long id) {
         return deliveryService.findById(id)
@@ -45,12 +51,15 @@ public class DeliveryController {
     }
 
     @GetMapping("/customer/{customerId}")
+    @PreAuthorize("hasRole('ADMIN') or @ownershipChecker.isCustomerOwner(authentication, #customerId)")
     @Operation(summary = "List deliveries for a customer")
     public List<DeliveryResponse> getByCustomer(@PathVariable Long customerId) {
         return deliveryService.findByCustomer(customerId).stream().map(DtoMapper::toResponse).toList();
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('CUSTOMER') and "
+            + "@ownershipChecker.isCustomerOwner(authentication, #req.customerId))")
     @Operation(summary = "Create a new delivery")
     public ResponseEntity<DeliveryResponse> create(@Valid @RequestBody DeliveryRequest req) {
         Customer customer = customerService.findById(req.getCustomerId())
@@ -58,6 +67,7 @@ public class DeliveryController {
 
         Delivery delivery = Delivery.builder()
                 .customer(customer)
+                .assignedDriver(resolveDriver(req.getAssignedDriverId()))
                 .quantity(req.getQuantity())
                 .notes(req.getNotes())
                 .timestamp(req.getTimestamp() != null ? req.getTimestamp() : LocalDateTime.now())
@@ -70,6 +80,7 @@ public class DeliveryController {
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasRole('ADMIN') or @ownershipChecker.isDeliveryDriver(authentication, #id)")
     @Operation(summary = "Update a delivery")
     public DeliveryResponse update(@PathVariable Long id, @Valid @RequestBody DeliveryRequest req) {
         Delivery existing = deliveryService.findById(id)
@@ -81,6 +92,7 @@ public class DeliveryController {
             existing.setCustomer(customer);
         }
 
+        existing.setAssignedDriver(resolveDriver(req.getAssignedDriverId()));
         existing.setQuantity(req.getQuantity());
         existing.setNotes(req.getNotes());
         if (req.getTimestamp() != null) {
@@ -98,5 +110,13 @@ public class DeliveryController {
         }
         deliveryService.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private Driver resolveDriver(Long driverId) {
+        if (driverId == null) {
+            return null;
+        }
+        return driverService.findById(driverId)
+                .orElseThrow(() -> new ResourceNotFoundException("Driver", driverId));
     }
 }

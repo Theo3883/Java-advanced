@@ -8,7 +8,7 @@ import lombok.*;
 @Getter
 @Setter
 @NoArgsConstructor
-@ToString(exclude = "vehicle")
+@ToString(exclude = {"vehicle", "user"})
 public class DriverEntity extends PersonEntity {
 
     @Id
@@ -17,6 +17,10 @@ public class DriverEntity extends PersonEntity {
 
     @OneToOne(mappedBy = "driver")
     private VehicleEntity vehicle;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", unique = true)
+    private UserEntity user;
 
     @Builder
     public DriverEntity(String name, String email, String phone) {
