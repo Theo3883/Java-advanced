@@ -11,7 +11,7 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-@ToString(exclude = "deliveries")
+@ToString(exclude = {"deliveries", "user"})
 public class CustomerEntity extends PersonEntity {
 
     @Id
@@ -23,6 +23,10 @@ public class CustomerEntity extends PersonEntity {
 
     @Embedded
     private CoordinatesEmbeddable coordinates;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", unique = true)
+    private UserEntity user;
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<DeliveryEntity> deliveries = new ArrayList<>();

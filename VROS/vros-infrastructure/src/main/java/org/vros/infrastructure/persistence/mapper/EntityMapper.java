@@ -4,14 +4,15 @@ import org.vros.domain.model.*;
 import org.vros.infrastructure.persistence.entity.*;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * Static bidirectional mappers between JPA entities and domain models.
  * Must be called inside an active transaction so lazy proxies are initialized.
+ *
+ * <p>Nested associations are mapped "shallow" (one level, no back-reference) to avoid
+ * infinite object graphs (e.g. Vehicle.driver &lt;-&gt; Driver.vehicle).</p>
  */
 public final class EntityMapper {
 
@@ -28,18 +29,78 @@ public final class EntityMapper {
         return new CoordinatesEmbeddable(d.getLat(), d.getLng());
     }
 
+    // ---------- User ----------
+    public static User toDomain(UserEntity e) {
+        if (e == null) return null;
+        return User.builder()
+                .id(e.getId())
+                .keycloakSubject(e.getKeycloakSubject())
+                .email(e.getEmail())
+                .displayName(e.getDisplayName())
+                .enabled(e.isEnabled())
+                .createdAt(e.getCreatedAt())
+                .updatedAt(e.getUpdatedAt())
+                .build();
+    }
+
+    public static UserEntity toEntity(User d) {
+        if (d == null) return null;
+        return UserEntity.builder()
+                .id(d.getId())
+                .keycloakSubject(d.getKeycloakSubject())
+                .email(d.getEmail())
+                .displayName(d.getDisplayName())
+                .enabled(d.isEnabled())
+                .createdAt(d.getCreatedAt())
+                .updatedAt(d.getUpdatedAt())
+                .build();
+    }
+
+    /** Lightweight JPA reference by id, without triggering cascades or loading associations. */
+    private static UserEntity userRef(User d) {
+        if (d == null) return null;
+        UserEntity e = new UserEntity();
+        e.setId(d.getId());
+        e.setKeycloakSubject(d.getKeycloakSubject());
+        e.setEmail(d.getEmail());
+        e.setDisplayName(d.getDisplayName());
+        e.setEnabled(d.isEnabled());
+        return e;
+    }
+
     // ---------- Customer ----------
     public static Customer toDomain(CustomerEntity e) {
         if (e == null) return null;
         Customer c = new Customer(e.getName(), e.getEmail(), e.getPhone(), e.getAddress(), toDomain(e.getCoordinates()));
         c.setId(e.getId());
+        c.setUser(toDomain(e.getUser()));
+        return c;
+    }
+
+    /**
+     * Customer graph including its deliveries. Deliveries are mapped without their
+     * customer back-reference to keep the object graph acyclic.
+     */
+    public static Customer toDomainWithDeliveries(CustomerEntity e) {
+        if (e == null) return null;
+        Customer c = toDomain(e);
         if (e.getDeliveries() != null) {
-            c.setDeliveries(e.getDeliveries().stream().map(EntityMapper::toDomain).collect(Collectors.toList()));
+            c.setDeliveries(e.getDeliveries().stream()
+                    .map(EntityMapper::toDomainWithoutCustomer)
+                    .collect(Collectors.toList()));
         }
         return c;
     }
 
     public static CustomerEntity toEntity(Customer d) {
+        if (d == null) return null;
+        CustomerEntity e = new CustomerEntity(d.getName(), d.getEmail(), d.getPhone(), d.getAddress(), toEntity(d.getCoordinates()));
+        e.setId(d.getId());
+        e.setUser(userRef(d.getUser()));
+        return e;
+    }
+
+    private static CustomerEntity customerRef(Customer d) {
         if (d == null) return null;
         CustomerEntity e = new CustomerEntity(d.getName(), d.getEmail(), d.getPhone(), d.getAddress(), toEntity(d.getCoordinates()));
         e.setId(d.getId());
@@ -49,9 +110,16 @@ public final class EntityMapper {
     // ---------- Delivery ----------
     public static Delivery toDomain(DeliveryEntity e) {
         if (e == null) return null;
+        Delivery d = toDomainWithoutCustomer(e);
+        d.setCustomer(toDomain(e.getCustomer()));
+        return d;
+    }
+
+    private static Delivery toDomainWithoutCustomer(DeliveryEntity e) {
+        if (e == null) return null;
         Delivery d = new Delivery();
         d.setId(e.getId());
-        d.setCustomer(toDomain(e.getCustomer()));
+        d.setAssignedDriver(toDomainShallow(e.getAssignedDriver()));
         d.setQuantity(e.getQuantity());
         d.setNotes(e.getNotes());
         d.setTimestamp(e.getTimestamp());
@@ -62,7 +130,8 @@ public final class EntityMapper {
         if (d == null) return null;
         DeliveryEntity e = new DeliveryEntity();
         e.setId(d.getId());
-        e.setCustomer(toEntity(d.getCustomer()));
+        e.setCustomer(customerRef(d.getCustomer()));
+        e.setAssignedDriver(driverRef(d.getAssignedDriver()));
         e.setQuantity(d.getQuantity());
         e.setNotes(d.getNotes());
         e.setTimestamp(d.getTimestamp());
@@ -77,7 +146,9 @@ public final class EntityMapper {
         d.setName(e.getName());
         d.setCoordinates(toDomain(e.getCoordinates()));
         if (e.getVehicles() != null) {
-            d.setVehicles(e.getVehicles().stream().map(EntityMapper::toDomain).collect(Collectors.toList()));
+            d.setVehicles(e.getVehicles().stream()
+                    .map(EntityMapper::toDomainShallow)
+                    .collect(Collectors.toList()));
         }
         return d;
     }
@@ -91,12 +162,28 @@ public final class EntityMapper {
         return e;
     }
 
+    private static DepotEntity depotRef(Depot d) {
+        if (d == null) return null;
+        DepotEntity e = new DepotEntity();
+        e.setId(d.getId());
+        e.setName(d.getName());
+        return e;
+    }
+
     // ---------- Driver ----------
     public static Driver toDomain(DriverEntity e) {
         if (e == null) return null;
+        Driver d = toDomainShallow(e);
+        d.setVehicle(toDomainShallow(e.getVehicle()));
+        return d;
+    }
+
+    /** Driver without its vehicle back-reference. */
+    private static Driver toDomainShallow(DriverEntity e) {
+        if (e == null) return null;
         Driver d = new Driver(e.getName(), e.getEmail(), e.getPhone());
         d.setId(e.getId());
-        d.setVehicle(toDomain(e.getVehicle()));
+        d.setUser(toDomain(e.getUser()));
         return d;
     }
 
@@ -104,7 +191,14 @@ public final class EntityMapper {
         if (d == null) return null;
         DriverEntity e = new DriverEntity(d.getName(), d.getEmail(), d.getPhone());
         e.setId(d.getId());
-        e.setVehicle(toEntity(d.getVehicle()));
+        e.setUser(userRef(d.getUser()));
+        return e;
+    }
+
+    private static DriverEntity driverRef(Driver d) {
+        if (d == null) return null;
+        DriverEntity e = new DriverEntity(d.getName(), d.getEmail(), d.getPhone());
+        e.setId(d.getId());
         return e;
     }
 
@@ -115,10 +209,10 @@ public final class EntityMapper {
         s.setId(e.getId());
         s.setName(e.getName());
         if (e.getVehicles() != null) {
-            s.setVehicles(e.getVehicles().stream().map(EntityMapper::toDomain).collect(Collectors.toSet()));
+            s.setVehicles(e.getVehicles().stream().map(EntityMapper::toDomainShallow).collect(Collectors.toSet()));
         }
         if (e.getDeliveries() != null) {
-            s.setDeliveries(e.getDeliveries().stream().map(EntityMapper::toDomain).collect(Collectors.toSet()));
+            s.setDeliveries(e.getDeliveries().stream().map(EntityMapper::toDomainWithoutCustomer).collect(Collectors.toSet()));
         }
         return s;
     }
@@ -140,13 +234,20 @@ public final class EntityMapper {
     // ---------- Vehicle ----------
     public static Vehicle toDomain(VehicleEntity e) {
         if (e == null) return null;
+        Vehicle v = toDomainShallow(e);
+        v.setDepot(toDomain(e.getDepot()));
+        v.setDriver(toDomainShallow(e.getDriver()));
+        return v;
+    }
+
+    /** Vehicle without driver/depot back-references (safe for nested mappings). */
+    private static Vehicle toDomainShallow(VehicleEntity e) {
+        if (e == null) return null;
         Vehicle v = new Vehicle();
         v.setId(e.getId());
         v.setName(e.getName());
         v.setCapacity(e.getCapacity());
         v.setAvailable(e.isAvailable());
-        v.setDepot(toDomain(e.getDepot()));
-        v.setDriver(toDomain(e.getDriver()));
         return v;
     }
 
@@ -157,8 +258,8 @@ public final class EntityMapper {
         e.setName(d.getName());
         e.setCapacity(d.getCapacity());
         e.setAvailable(d.isAvailable());
-        e.setDepot(toEntity(d.getDepot()));
-        e.setDriver(toEntity(d.getDriver()));
+        e.setDepot(depotRef(d.getDepot()));
+        e.setDriver(driverRef(d.getDriver()));
         return e;
     }
 

@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = "customer")
+@ToString(exclude = {"customer", "assignedDriver"})
 public class DeliveryEntity {
 
     @Id
@@ -22,6 +22,10 @@ public class DeliveryEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "customer_id", nullable = false)
     private CustomerEntity customer;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_driver_id")
+    private DriverEntity assignedDriver;
 
     @Column(nullable = false)
     private int quantity;
