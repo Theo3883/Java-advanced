@@ -5,6 +5,7 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.jupiter.api.Test;
 import org.vros.application.service.OptimizationService;
 import org.vros.contracts.optimization.OptimizationResultEvent;
+import org.vros.infrastructure.messaging.OptimizationMetrics;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -19,7 +20,9 @@ import static org.mockito.Mockito.verify;
 class OptimizationResultDlqListenerTest {
 
     private final OptimizationService service = mock(OptimizationService.class);
-    private final OptimizationResultDlqListener listener = new OptimizationResultDlqListener(service);
+    private final OptimizationMetrics metrics = mock(OptimizationMetrics.class);
+    private final OptimizationResultDlqListener listener =
+            new OptimizationResultDlqListener(service, metrics);
 
     @Test
     void marksJobFailedWhenResultIsDeadLettered() {

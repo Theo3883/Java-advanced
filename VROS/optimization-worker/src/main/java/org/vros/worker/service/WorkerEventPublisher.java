@@ -35,6 +35,13 @@ public class WorkerEventPublisher {
     private final WorkerKafkaProperties properties;
     private final WorkerMetrics metrics;
 
+    /**
+     * In the eos profile the result and its terminal ack are written in one Kafka transaction, so
+     * VROS never observes a COMPLETED ack without a result (or vice versa).
+     */
+    @org.springframework.beans.factory.annotation.Value("${vros.worker.eos:false}")
+    private boolean eos;
+
     public void publishAck(UUID jobId, AckStatus status, String message) {
         OptimizationAckEvent event = new OptimizationAckEvent(
                 OptimizationRequestEvent.CURRENT_SCHEMA_VERSION, jobId, status, message, Instant.now());
@@ -50,6 +57,29 @@ public class WorkerEventPublisher {
 
     public void publishResult(OptimizationResultEvent event) {
         send(properties.getTopics().getResults(), event.jobId(), event);
+    }
+
+    /**
+     * Publishes the result and the COMPLETED ack. Without EOS they are two idempotent sends;
+     * with EOS they share a Kafka transaction.
+     */
+    public void publishCompletion(OptimizationResultEvent result) {
+        OptimizationAckEvent ack = new OptimizationAckEvent(
+                OptimizationRequestEvent.CURRENT_SCHEMA_VERSION,
+                result.jobId(),
+                AckStatus.COMPLETED,
+                "Optimization completed",
+                Instant.now());
+        if (!eos) {
+            publishResult(result);
+            publishAck(result.jobId(), AckStatus.COMPLETED, "Optimization completed");
+            return;
+        }
+        optimizationKafkaTemplate.executeInTransaction(operations -> {
+            operations.send(properties.getTopics().getResults(), result.jobId().toString(), result);
+            operations.send(properties.getTopics().getAcks(), result.jobId().toString(), ack);
+            return true;
+        });
     }
 
     public void publishToDlt(OptimizationRequestEvent request, Throwable error) {

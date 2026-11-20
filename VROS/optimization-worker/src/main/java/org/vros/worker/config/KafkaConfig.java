@@ -21,7 +21,12 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.kafka.transaction.KafkaTransactionManager;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.context.annotation.Profile;
+import org.springframework.util.StringUtils;
 import org.apache.kafka.clients.admin.NewTopic;
 
 import java.util.Map;
@@ -48,14 +53,31 @@ public class KafkaConfig {
         Map<String, Object> config = kafkaProperties.buildProducerProperties();
         config.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
         config.putIfAbsent(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
-        return new DefaultKafkaProducerFactory<>(
+        DefaultKafkaProducerFactory<String, Object> factory = new DefaultKafkaProducerFactory<>(
                 config, new StringSerializer(), new JsonSerializer<>(workerObjectMapper));
+        String transactionIdPrefix = kafkaProperties.getProducer().getTransactionIdPrefix();
+        if (StringUtils.hasText(transactionIdPrefix)) {
+            factory.setTransactionIdPrefix(transactionIdPrefix);
+        }
+        return factory;
     }
 
     @Bean
     public KafkaTemplate<String, Object> optimizationKafkaTemplate(
             ProducerFactory<String, Object> optimizationProducerFactory) {
+        // KafkaTemplate derives transactionality from the producer factory's transaction id prefix.
         return new KafkaTemplate<>(optimizationProducerFactory);
+    }
+
+    /**
+     * Only present in the {@code eos} profile. The listener container then commits offsets through
+     * the Kafka transaction; the producer factory carries the configured transaction id prefix.
+     */
+    @Bean
+    @Profile("eos")
+    public KafkaTransactionManager<String, Object> kafkaTransactionManager(
+            ProducerFactory<String, Object> optimizationProducerFactory) {
+        return new KafkaTransactionManager<>(optimizationProducerFactory);
     }
 
     @Bean
@@ -73,10 +95,14 @@ public class KafkaConfig {
 
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory(
-            ConsumerFactory<String, Object> optimizationConsumerFactory) {
+            ConsumerFactory<String, Object> optimizationConsumerFactory,
+            ObjectProvider<KafkaTransactionManager<String, Object>> transactionManager) {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(optimizationConsumerFactory);
+        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
+        transactionManager.ifAvailable(
+                manager -> factory.getContainerProperties().setTransactionManager(manager));
         return factory;
     }
 

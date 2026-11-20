@@ -47,8 +47,7 @@ public class OptimizationTaskService {
             OptimizationResultEvent result = solveWithRetry(request, throttle);
             throttle.publish(100, "COMPLETED", "Optimization completed");
 
-            publisher.publishResult(result);
-            publisher.publishAck(jobId, AckStatus.COMPLETED, "Optimization completed");
+            publisher.publishCompletion(result);
             dedupCache.markCompleted(result);
             metrics.jobCompleted(System.currentTimeMillis() - startedAt);
             log.info("Job {} completed in {} ms ({} routes, {} unassigned)",

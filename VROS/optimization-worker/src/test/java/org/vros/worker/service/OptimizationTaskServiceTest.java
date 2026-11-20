@@ -50,8 +50,7 @@ class OptimizationTaskServiceTest {
 
         taskService.solveAsync(request);
 
-        verify(publisher).publishResult(result);
-        verify(publisher).publishAck(request.jobId(), AckStatus.COMPLETED, "Optimization completed");
+        verify(publisher).publishCompletion(result);
         verify(publisher, never()).publishToDlt(any(), any());
     }
 
@@ -67,7 +66,7 @@ class OptimizationTaskServiceTest {
         taskService.solveAsync(request);
 
         verify(solver, times(3)).solve(any(), any());
-        verify(publisher).publishResult(result);
+        verify(publisher).publishCompletion(result);
         verify(publisher, never()).publishToDlt(any(), any());
     }
 
@@ -81,7 +80,7 @@ class OptimizationTaskServiceTest {
         verify(solver, times(3)).solve(any(), any());
         verify(publisher).publishAck(eq(request.jobId()), eq(AckStatus.FAILED), any());
         verify(publisher).publishToDlt(eq(request), any());
-        verify(publisher, never()).publishResult(any());
+        verify(publisher, never()).publishCompletion(any());
     }
 
     private OptimizationRequestEvent request() {

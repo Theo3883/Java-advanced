@@ -19,6 +19,7 @@ import org.vros.contracts.optimization.OptimizationResultEvent;
 public class OptimizationResultListener {
 
     private final OptimizationService optimizationService;
+    private final OptimizationMetrics metrics;
 
     @RetryableTopic(
             attempts = "3",
@@ -43,6 +44,7 @@ public class OptimizationResultListener {
         log.info("Received result for job {} ({} routes, feasible={})",
                 record.value().jobId(), record.value().routes() == null ? 0 : record.value().routes().size(),
                 record.value().feasible());
+        metrics.resultCompleted();
         optimizationService.handleResult(record.value());
     }
 }

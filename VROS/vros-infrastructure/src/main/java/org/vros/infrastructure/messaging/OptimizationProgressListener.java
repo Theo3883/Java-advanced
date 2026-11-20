@@ -14,6 +14,7 @@ import org.vros.contracts.optimization.OptimizationProgressEvent;
 public class OptimizationProgressListener {
 
     private final OptimizationService optimizationService;
+    private final OptimizationMetrics metrics;
 
     @KafkaListener(
             topics = "${vros.kafka.topics.progress}",
@@ -25,6 +26,7 @@ public class OptimizationProgressListener {
                     record.key(), record.partition(), record.offset());
             return;
         }
+        metrics.progressEvent();
         optimizationService.handleProgress(record.value());
     }
 }

@@ -16,6 +16,7 @@ public class KafkaOptimizationEventPublisher implements OptimizationEventPublish
 
     private final KafkaTemplate<String, Object> optimizationKafkaTemplate;
     private final OptimizationKafkaProperties properties;
+    private final OptimizationMetrics metrics;
 
     @Override
     public void publishRequest(OptimizationRequestEvent event) {
@@ -23,6 +24,7 @@ public class KafkaOptimizationEventPublisher implements OptimizationEventPublish
             optimizationKafkaTemplate
                     .send(properties.getTopics().getRequests(), event.jobId().toString(), event)
                     .get(5, TimeUnit.SECONDS);
+            metrics.requestSubmitted(event.scenarioId());
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new OptimizationSubmissionException("Interrupted while publishing optimization request", ex);

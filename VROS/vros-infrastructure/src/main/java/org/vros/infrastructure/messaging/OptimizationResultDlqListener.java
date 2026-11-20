@@ -21,6 +21,7 @@ import java.util.UUID;
 public class OptimizationResultDlqListener {
 
     private final OptimizationService optimizationService;
+    private final OptimizationMetrics metrics;
 
     @KafkaListener(
             topics = "${vros.kafka.topics.results-dlt}",
@@ -34,6 +35,7 @@ public class OptimizationResultDlqListener {
         }
         log.error("Dead-lettered result topic={} partition={} offset={} key={} jobId={} reason={}",
                 record.topic(), record.partition(), record.offset(), record.key(), jobId, reason);
+        metrics.deadLettered();
         if (jobId != null) {
             optimizationService.markDeadLettered(jobId,
                     "Result dead-lettered after retries: " + (reason == null ? "unknown error" : reason));

@@ -28,17 +28,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(classes = OptimizationWorkerApplication.class)
 @EmbeddedKafka(
-        partitions = 3,
-        topics = {
-                "vros.optimization.requests",
-                "vros.optimization.acks",
-                "vros.optimization.results",
-                "vros.optimization.progress",
-                "vros.optimization.requests-dlt",
-                "vros.optimization.requests-retry-0",
-                "vros.optimization.requests-retry-1",
-                "vros.optimization.requests-retry-2"
-        },
+        // Topics are created by the application's NewTopic beans so partition counts stay
+        // consistent with the worker configuration.
         brokerProperties = {
                 "offsets.topic.replication.factor=1",
                 "transaction.state.log.replication.factor=1",

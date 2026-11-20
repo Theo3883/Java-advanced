@@ -14,6 +14,7 @@ import org.vros.contracts.optimization.OptimizationAckEvent;
 public class OptimizationAckListener {
 
     private final OptimizationService optimizationService;
+    private final OptimizationMetrics metrics;
 
     @KafkaListener(
             topics = "${vros.kafka.topics.acks}",
@@ -26,6 +27,7 @@ public class OptimizationAckListener {
             return;
         }
         log.debug("Received ACK for job {}: {}", record.value().jobId(), record.value().status());
+        metrics.ackReceived(record.value().status());
         optimizationService.handleAck(record.value());
     }
 }

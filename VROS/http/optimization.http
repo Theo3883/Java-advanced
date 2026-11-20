@@ -1,0 +1,35 @@
+### VROS optimization API
+### Dev profile bypasses Keycloak. For other profiles set the bearer token below.
+@baseUrl = http://localhost:8080
+@token =
+@scenarioId = 1
+
+### Submit an optimization job (ADMIN in prod; open in dev)
+# @name submit
+POST {{baseUrl}}/api/v1/optimization/jobs
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "scenarioId": {{scenarioId}}
+}
+
+### Job status
+@jobId = {{submit.response.body.jobId}}
+GET {{baseUrl}}/api/v1/optimization/jobs/{{jobId}}
+Authorization: Bearer {{token}}
+
+### Solution (409 until COMPLETED)
+GET {{baseUrl}}/api/v1/optimization/jobs/{{jobId}}/solution
+Authorization: Bearer {{token}}
+
+### List jobs for a scenario
+GET {{baseUrl}}/api/v1/optimization/jobs?scenarioId={{scenarioId}}
+Authorization: Bearer {{token}}
+
+### List all failed jobs
+GET {{baseUrl}}/api/v1/optimization/jobs?status=FAILED
+Authorization: Bearer {{token}}
+
+### Health
+GET {{baseUrl}}/actuator/health
