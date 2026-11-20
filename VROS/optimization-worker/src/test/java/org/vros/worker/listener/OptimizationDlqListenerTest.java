@@ -5,13 +5,10 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.vros.contracts.optimization.AckStatus;
-import org.vros.contracts.optimization.OptimizationRequestEvent;
 import org.vros.worker.metrics.WorkerMetrics;
 import org.vros.worker.service.WorkerEventPublisher;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -36,9 +33,9 @@ class OptimizationDlqListenerTest {
     @Test
     void publishesFailedAckForDeadLetteredPayload() {
         UUID jobId = UUID.randomUUID();
-        ConsumerRecord<String, OptimizationRequestEvent> record = new ConsumerRecord<>(
+        ConsumerRecord<String, byte[]> record = new ConsumerRecord<>(
                 "vros.optimization.requests-dlt", 0, 10L, jobId.toString(),
-                new OptimizationRequestEvent(1, jobId, 1L, "scenario", List.of(), List.of(), Instant.now()));
+                "unreadable".getBytes(StandardCharsets.UTF_8));
         record.headers().add(new RecordHeader("kafka_dlt-exception-message",
                 "boom".getBytes(StandardCharsets.UTF_8)));
 
@@ -51,7 +48,7 @@ class OptimizationDlqListenerTest {
     @Test
     void fallsBackToRecordKeyWhenPayloadIsUnreadable() {
         UUID jobId = UUID.randomUUID();
-        ConsumerRecord<String, OptimizationRequestEvent> record = new ConsumerRecord<>(
+        ConsumerRecord<String, byte[]> record = new ConsumerRecord<>(
                 "vros.optimization.requests-dlt", 0, 11L, jobId.toString(), null);
 
         listener.onDeadLetter(record);

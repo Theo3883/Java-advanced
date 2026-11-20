@@ -8,7 +8,6 @@ import org.vros.domain.model.OptimizationJobStatus;
 import org.vros.infrastructure.persistence.entity.OptimizationJobEntity;
 
 import java.time.Instant;
-import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,16 +23,21 @@ public interface OptimizationJobJpaRepository extends JpaRepository<Optimization
                set j.progress = :progress,
                    j.phase = :phase,
                    j.status = :running,
-                   j.updatedAt = :updatedAt
+                   j.updatedAt = :updatedAt,
+                   j.version = j.version + 1
              where j.id = :id
-               and j.status not in :terminal
+               and j.status <> :completed
+               and j.status <> :failed
+               and j.status <> :submissionFailed
             """)
     int updateProgress(@Param("id") UUID id,
                        @Param("progress") int progress,
                        @Param("phase") String phase,
                        @Param("running") OptimizationJobStatus running,
                        @Param("updatedAt") Instant updatedAt,
-                       @Param("terminal") Collection<OptimizationJobStatus> terminal);
+                       @Param("completed") OptimizationJobStatus completed,
+                       @Param("failed") OptimizationJobStatus failed,
+                       @Param("submissionFailed") OptimizationJobStatus submissionFailed);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
@@ -41,7 +45,8 @@ public interface OptimizationJobJpaRepository extends JpaRepository<Optimization
                set j.status = :finalStatus,
                    j.errorMessage = :error,
                    j.updatedAt = :updatedAt,
-                   j.completedAt = :updatedAt
+                   j.completedAt = :updatedAt,
+                   j.version = j.version + 1
              where j.id = :id
                and j.status <> :completed
             """)

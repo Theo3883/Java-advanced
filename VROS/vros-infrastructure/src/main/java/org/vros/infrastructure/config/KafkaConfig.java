@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
@@ -78,6 +79,28 @@ public class KafkaConfig {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(optimizationConsumerFactory);
+        return factory;
+    }
+
+    /**
+     * Raw-byte consumer for the results DLT: dead-lettered payloads may not be deserializable.
+     * The job id is recovered from the record key.
+     */
+    @Bean
+    public ConsumerFactory<String, byte[]> resultsDltConsumerFactory(
+            KafkaProperties kafkaProperties) {
+        Map<String, Object> config = kafkaProperties.buildConsumerProperties();
+        config.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        return new DefaultKafkaConsumerFactory<>(
+                config, new StringDeserializer(), new ByteArrayDeserializer());
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, byte[]> resultsDltListenerContainerFactory(
+            ConsumerFactory<String, byte[]> resultsDltConsumerFactory) {
+        ConcurrentKafkaListenerContainerFactory<String, byte[]> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(resultsDltConsumerFactory);
         return factory;
     }
 

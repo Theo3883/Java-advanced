@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
@@ -66,7 +67,11 @@ public class KafkaConfig {
     public KafkaTemplate<String, Object> optimizationKafkaTemplate(
             ProducerFactory<String, Object> optimizationProducerFactory) {
         // KafkaTemplate derives transactionality from the producer factory's transaction id prefix.
-        return new KafkaTemplate<>(optimizationProducerFactory);
+        KafkaTemplate<String, Object> template = new KafkaTemplate<>(optimizationProducerFactory);
+        // In the eos profile, asynchronous progress/ack publishes happen outside a transaction.
+        // They are safe to send non-transactionally; only result+ack must be atomic.
+        template.setAllowNonTransactional(true);
+        return template;
     }
 
     /**
@@ -103,6 +108,27 @@ public class KafkaConfig {
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
         transactionManager.ifAvailable(
                 manager -> factory.getContainerProperties().setTransactionManager(manager));
+        return factory;
+    }
+
+    /**
+     * DLT records may be unreadable (poison messages) and carry raw bytes. A dedicated
+     * byte[] consumer keeps the DLT listener alive; the job id is taken from the record key.
+     */
+    @Bean
+    public ConsumerFactory<String, byte[]> dltConsumerFactory(KafkaProperties kafkaProperties) {
+        Map<String, Object> config = kafkaProperties.buildConsumerProperties();
+        config.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        return new DefaultKafkaConsumerFactory<>(config, new StringDeserializer(), new ByteArrayDeserializer());
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, byte[]> dltListenerContainerFactory(
+            ConsumerFactory<String, byte[]> dltConsumerFactory) {
+        ConcurrentKafkaListenerContainerFactory<String, byte[]> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(dltConsumerFactory);
+        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
         return factory;
     }
 

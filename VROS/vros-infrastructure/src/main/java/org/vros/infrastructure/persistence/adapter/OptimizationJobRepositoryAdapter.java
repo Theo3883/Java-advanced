@@ -23,11 +23,6 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class OptimizationJobRepositoryAdapter implements OptimizationJobRepository {
 
-    private static final List<OptimizationJobStatus> TERMINAL = List.of(
-            OptimizationJobStatus.COMPLETED,
-            OptimizationJobStatus.FAILED,
-            OptimizationJobStatus.SUBMISSION_FAILED);
-
     private final OptimizationJobJpaRepository jobJpaRepository;
     private final OptimizationSolutionJpaRepository solutionJpaRepository;
     private final ObjectMapper objectMapper;
@@ -69,7 +64,8 @@ public class OptimizationJobRepositoryAdapter implements OptimizationJobReposito
     @Transactional
     public void updateProgress(UUID id, int progress, String phase, Instant updatedAt) {
         jobJpaRepository.updateProgress(id, progress, phase, OptimizationJobStatus.RUNNING,
-                updatedAt, TERMINAL);
+                updatedAt, OptimizationJobStatus.COMPLETED,
+                OptimizationJobStatus.FAILED, OptimizationJobStatus.SUBMISSION_FAILED);
     }
 
     @Override
@@ -85,8 +81,12 @@ public class OptimizationJobRepositoryAdapter implements OptimizationJobReposito
         entity.setErrorMessage(null);
         entity.setCompletedAt(completedAt);
         entity.setUpdatedAt(completedAt);
-        jobJpaRepository.save(entity);
+        // Flush the versioned job update before inserting the solution so a concurrent progress
+        // update (which also bumps the version) makes this transaction fail and retry instead of
+        // leaving a COMPLETED solution with a RUNNING job row.
+        jobJpaRepository.saveAndFlush(entity);
         solutionJpaRepository.save(OptimizationMapper.toEntity(solution, objectMapper));
+        solutionJpaRepository.flush();
     }
 
     @Override

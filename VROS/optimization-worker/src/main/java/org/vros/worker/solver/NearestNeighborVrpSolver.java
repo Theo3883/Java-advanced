@@ -10,6 +10,7 @@ import org.vros.contracts.optimization.VehicleSpec;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -38,6 +39,9 @@ public class NearestNeighborVrpSolver implements VrpSolver {
 
         List<DeliverySpec> remaining = new ArrayList<>(
                 request.deliveries() == null ? List.of() : request.deliveries());
+        // Stable input order makes tie-breaking (and therefore the benchmark) reproducible.
+        remaining.sort(Comparator.comparing(DeliverySpec::id,
+                Comparator.nullsLast(Comparator.naturalOrder())));
         int totalDeliveries = remaining.size();
         int assignedDeliveries = 0;
         List<RoutePlan> routes = new ArrayList<>();
@@ -119,6 +123,8 @@ public class NearestNeighborVrpSolver implements VrpSolver {
                 .filter(vehicle -> vehicle != null)
                 .filter(vehicle -> vehicle.capacity() > 0)
                 .filter(vehicle -> isCoordinate(vehicle.depotLat(), vehicle.depotLng()))
+                .sorted(Comparator.comparing(VehicleSpec::id,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
                 .toList();
     }
 

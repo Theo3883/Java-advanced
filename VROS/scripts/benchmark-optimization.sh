@@ -15,12 +15,14 @@
 #   NOTES         free-form label stored in the summary
 #
 # Requires: curl, jq, awk, sort
-set -euo pipefail
+# Bash 3.2 (macOS) treats empty arrays as unbound under `set -u`, so only -e/-o pipefail.
+set -eo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:8080}"
 SCENARIO_ID="${SCENARIO_ID:-1}"
 JOBS="${JOBS:-50}"
 CONCURRENCY="${CONCURRENCY:-10}"
+MAX_WAIT="${MAX_WAIT:-180}"
 TOKEN="${TOKEN:-}"
 OUT="${OUT:-}"
 NOTES="${NOTES:-}"
@@ -34,13 +36,15 @@ export BASE_URL SCENARIO_ID TOKEN RESULTS_DIR
 
 submit() {
   local index="$1"
-  local auth=()
   if [[ -n "$TOKEN" ]]; then
-    auth=(-H "Authorization: Bearer $TOKEN")
+    curl -sS -X POST "$BASE_URL/api/v1/optimization/jobs" \
+      -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+      -d "{\"scenarioId\":$SCENARIO_ID}" > "$RESULTS_DIR/$index.json"
+  else
+    curl -sS -X POST "$BASE_URL/api/v1/optimization/jobs" \
+      -H 'Content-Type: application/json' \
+      -d "{\"scenarioId\":$SCENARIO_ID}" > "$RESULTS_DIR/$index.json"
   fi
-  curl -sS -X POST "$BASE_URL/api/v1/optimization/jobs" \
-    -H 'Content-Type: application/json' "${auth[@]}" \
-    -d "{\"scenarioId\":$SCENARIO_ID}" > "$RESULTS_DIR/$index.json"
 }
 export -f submit
 
@@ -69,25 +73,37 @@ if [[ "$submitted" -eq 0 ]]; then
 fi
 echo "Submitted: $submitted/$JOBS"
 
-mapfile -t pending < "$RESULTS_DIR/ids.txt"
+# bash 3.2 (macOS default) has no mapfile
+pending=()
+while IFS= read -r line; do
+  [[ -n "$line" ]] && pending+=("$line")
+done < "$RESULTS_DIR/ids.txt"
 : > "$RESULTS_DIR/durations.txt"
 completed=0
 failed=0
 
-while [[ ${#pending[@]} -gt 0 ]]; do
+deadline=$(( $(date +%s) + MAX_WAIT ))
+timed_out=0
+while [[ ${#pending[@]} -gt 0 && $(date +%s) -lt $deadline ]]; do
   next=()
   for job_id in "${pending[@]}"; do
-    auth=()
     if [[ -n "$TOKEN" ]]; then
-      auth=(-H "Authorization: Bearer $TOKEN")
+      body="$(curl -sS -H "Authorization: Bearer $TOKEN" "$BASE_URL/api/v1/optimization/jobs/$job_id")"
+    else
+      body="$(curl -sS "$BASE_URL/api/v1/optimization/jobs/$job_id")"
     fi
-    body="$(curl -sS "$BASE_URL/api/v1/optimization/jobs/$job_id" "${auth[@]}")"
     status="$(jq -r '.status' <<< "$body")"
     case "$status" in
       COMPLETED)
         completed=$((completed + 1))
-        jq -r '(((.completedAt // .updatedAt) | fromdateiso8601) - (.submittedAt | fromdateiso8601))' \
-          <<< "$body" >> "$RESULTS_DIR/durations.txt" 2>/dev/null || true
+        # Spring emits fractional ISO-8601, which jq's fromdateiso8601 rejects.
+        duration=$(python3 -c '
+import sys, datetime
+def parse(v):
+    return datetime.datetime.fromisoformat(v.replace("Z", "+00:00"))
+print((parse(sys.argv[1]) - parse(sys.argv[2])).total_seconds())
+' "$(jq -r '.completedAt // .updatedAt' <<< "$body")" "$(jq -r '.submittedAt' <<< "$body")" 2>/dev/null || true)
+        [[ -n "$duration" ]] && echo "$duration" >> "$RESULTS_DIR/durations.txt"
         ;;
       FAILED|SUBMISSION_FAILED)
         failed=$((failed + 1))
@@ -100,6 +116,11 @@ while [[ ${#pending[@]} -gt 0 ]]; do
   pending=("${next[@]}")
   [[ ${#pending[@]} -gt 0 ]] && sleep 0.5
 done
+if [[ ${#pending[@]} -gt 0 ]]; then
+  timed_out=1
+  echo "Timed out after ${MAX_WAIT}s with ${#pending[@]} job(s) still pending" >&2
+  printf '%s\n' "${pending[@]}" >&2
+fi
 
 end_ns=$(python3 -c 'import time; print(time.time_ns())')
 elapsed=$(awk -v s="$start_ns" -v e="$end_ns" 'BEGIN { printf "%.3f", (e-s)/1e9 }')
@@ -131,6 +152,8 @@ jobs: ${JOBS} (submitted ${submitted})
 concurrency: ${CONCURRENCY}
 completed: ${completed}
 failed: ${failed}
+pending_after_timeout: ${#pending[@]}
+timed_out: ${timed_out}
 wall_clock_s: ${elapsed}
 throughput_jobs_per_s: ${throughput}
 completion_p50_s: ${p50}

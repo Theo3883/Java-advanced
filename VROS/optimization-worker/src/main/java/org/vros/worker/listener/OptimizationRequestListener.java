@@ -29,6 +29,7 @@ public class OptimizationRequestListener {
                     maxDelayString = "${vros.worker.listener-retry-max-backoff-ms:10000}"),
             topicSuffixingStrategy = TopicSuffixingStrategy.SUFFIX_WITH_INDEX_VALUE,
             autoCreateTopics = "true",
+            autoStartDltHandler = "false",
             dltStrategy = DltStrategy.FAIL_ON_ERROR,
             exclude = {DeserializationException.class, UnsupportedSchemaVersionException.class})
     @KafkaListener(

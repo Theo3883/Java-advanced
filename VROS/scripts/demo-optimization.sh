@@ -15,15 +15,16 @@ BASE_URL="${BASE_URL:-http://localhost:8080}"
 SCENARIO_ID="${1:-${SCENARIO_ID:-1}}"
 TOKEN="${TOKEN:-}"
 
-auth=()
-if [[ -n "$TOKEN" ]]; then
-  auth=(-H "Authorization: Bearer $TOKEN")
-fi
-
 echo "Submitting scenario $SCENARIO_ID to $BASE_URL"
-job="$(curl -sS -X POST "$BASE_URL/api/v1/optimization/jobs" \
-  -H 'Content-Type: application/json' "${auth[@]}" \
-  -d "{\"scenarioId\":$SCENARIO_ID}")"
+if [[ -n "$TOKEN" ]]; then
+  job="$(curl -sS -X POST "$BASE_URL/api/v1/optimization/jobs" \
+    -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+    -d "{\"scenarioId\":$SCENARIO_ID}")"
+else
+  job="$(curl -sS -X POST "$BASE_URL/api/v1/optimization/jobs" \
+    -H 'Content-Type: application/json' \
+    -d "{\"scenarioId\":$SCENARIO_ID}")"
+fi
 echo "$job" | jq .
 
 job_id="$(echo "$job" | jq -r '.jobId // empty')"
@@ -34,14 +35,22 @@ fi
 
 status=""
 for _ in $(seq 1 120); do
-  body="$(curl -sS "$BASE_URL/api/v1/optimization/jobs/$job_id" "${auth[@]}")"
+  if [[ -n "$TOKEN" ]]; then
+    body="$(curl -sS -H "Authorization: Bearer $TOKEN" "$BASE_URL/api/v1/optimization/jobs/$job_id")"
+  else
+    body="$(curl -sS "$BASE_URL/api/v1/optimization/jobs/$job_id")"
+  fi
   status="$(echo "$body" | jq -r '.status')"
   printf '\rstatus=%s progress=%s phase=%s   ' \
     "$status" "$(echo "$body" | jq -r '.progress')" "$(echo "$body" | jq -r '.phase')"
   case "$status" in
     COMPLETED)
       echo
-      curl -sS "$BASE_URL/api/v1/optimization/jobs/$job_id/solution" "${auth[@]}" | jq .
+      if [[ -n "$TOKEN" ]]; then
+        curl -sS -H "Authorization: Bearer $TOKEN" "$BASE_URL/api/v1/optimization/jobs/$job_id/solution" | jq .
+      else
+        curl -sS "$BASE_URL/api/v1/optimization/jobs/$job_id/solution" | jq .
+      fi
       exit 0
       ;;
     FAILED|SUBMISSION_FAILED)

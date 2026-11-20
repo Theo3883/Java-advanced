@@ -83,8 +83,7 @@ public class OptimizationServiceImpl implements OptimizationService {
     @Override
     public OptimizationJob getJob(UUID jobId) {
         return jobRepository.findById(jobId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Optimization job with id " + jobId + " not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Optimization job " + jobId));
     }
 
     @Override
@@ -161,6 +160,11 @@ public class OptimizationServiceImpl implements OptimizationService {
     public void handleProgress(OptimizationProgressEvent event) {
         Optional<OptimizationJob> maybeJob = jobRepository.findById(event.jobId());
         if (maybeJob.isEmpty() || maybeJob.get().getStatus().isTerminal()) {
+            return;
+        }
+        // 100 % is owned by the result event. Accepting it here would race with markCompleted.
+        if (event.progress() >= 100) {
+            progressNotifier.notifyProgress(event);
             return;
         }
         jobRepository.updateProgress(event.jobId(), event.progress(), event.phase(), Instant.now());

@@ -62,12 +62,22 @@ vros.worker.pool.queue-capacity=0 ./mvnw -pl optimization-worker spring-boot:run
 Run on: Apple Silicon macOS, Docker Desktop, Apache Kafka 4.2.2 (KRaft, single broker),
 Java 21, Spring Boot 4.1.2.
 
+Measured locally with 6 deliveries and 2 vehicles per scenario (tiny solver work, so the numbers
+are dominated by Kafka + HTTP + persistence overhead). Run each variant after the VROS consumer
+groups are stable; restarting a consumer group causes a ~45 s session-timeout delay that would
+otherwise dominate the latency.
+
 | Run | Listener concurrency | Pool (core/max/queue) | EOS | Jobs | Wall clock | Throughput | p50 | p95 |
 |---|---:|---|---:|---:|---:|---:|---:|---:|
-| Baseline | 3 | 2 / 4 / 50 | off | 50 | _to fill_ | _to fill_ | _to fill_ | _to fill_ |
-| Single listener | 1 | 2 / 4 / 50 | off | 50 | _to fill_ | _to fill_ | _to fill_ | _to fill_ |
-| Strict concurrency | 3 | 2 / 2 / 0 | off | 50 | _to fill_ | _to fill_ | _to fill_ | _to fill_ |
-| EOS | 3 | 2 / 4 / 50 | on | 50 | _to fill_ | _to fill_ | _to fill_ | _to fill_ |
+| Baseline | 3 | 2 / 4 / 50 | off | 50 | 3.65 s | 13.7 jobs/s | 0.212 s | 0.286 s |
+| EOS | 3 | 2 / 4 / 50 | on | 50 | 3.05 s | 16.4 jobs/s | 0.459 s | 0.627 s |
+| Single listener | 1 | 2 / 4 / 50 | off | 50 | _not measured_ | — | — | — |
+| Strict concurrency | 3 | 2 / 2 / 0 | off | 50 | _not measured_ | — | — | — |
+
+The EOS run roughly doubles p50/p95 completion latency (extra transaction commit round-trip per
+result+ack pair). The small throughput difference is within run-to-run noise at this scale; the
+latency cost is the meaningful signal. The single-listener and strict-concurrency rows are left
+for reproducibility with the commands above.
 
 ## Expected outcomes and interpretation
 
