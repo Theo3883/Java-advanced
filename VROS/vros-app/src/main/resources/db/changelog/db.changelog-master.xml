@@ -8,5 +8,6 @@
     <include file="db/changelog/changes/01-create-initial-schema.xml"/>
     <include file="db/changelog/changes/02-create-scenario-schema.xml"/>
     <include file="db/changelog/changes/03-keycloak-users.xml"/>
+    <include file="db/changelog/changes/04-create-optimization-schema.xml"/>
 
 </databaseChangeLog>

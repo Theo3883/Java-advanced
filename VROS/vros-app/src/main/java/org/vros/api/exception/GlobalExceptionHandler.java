@@ -3,6 +3,9 @@ package org.vros.api.exception;
 import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
 import org.vros.domain.exception.ConflictException;
+import org.vros.domain.exception.InvalidOptimizationProblemException;
+import org.vros.domain.exception.OptimizationJobNotReadyException;
+import org.vros.domain.exception.OptimizationSubmissionException;
 import org.vros.domain.exception.ResourceNotFoundException;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
@@ -46,6 +49,36 @@ public class GlobalExceptionHandler {
 
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, detail);
         pd.setType(URI.create("https://vros.example/errors/conflict"));
+        pd.setTitle(title);
+        return pd;
+    }
+
+    @ExceptionHandler(InvalidOptimizationProblemException.class)
+    public ProblemDetail handleInvalidOptimization(InvalidOptimizationProblemException ex, Locale locale) {
+        String title = messageSource.getMessage(
+                "error.optimization.invalid.title", null, "Invalid Optimization Problem", locale);
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+        pd.setType(URI.create("https://vros.example/errors/invalid-optimization-problem"));
+        pd.setTitle(title);
+        return pd;
+    }
+
+    @ExceptionHandler(OptimizationJobNotReadyException.class)
+    public ProblemDetail handleOptimizationNotReady(OptimizationJobNotReadyException ex, Locale locale) {
+        String title = messageSource.getMessage(
+                "error.optimization.not_ready.title", null, "Optimization Job Not Ready", locale);
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        pd.setType(URI.create("https://vros.example/errors/job-not-ready"));
+        pd.setTitle(title);
+        return pd;
+    }
+
+    @ExceptionHandler(OptimizationSubmissionException.class)
+    public ProblemDetail handleOptimizationUnavailable(OptimizationSubmissionException ex, Locale locale) {
+        String title = messageSource.getMessage(
+                "error.optimization.unavailable.title", null, "Optimization Unavailable", locale);
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+        pd.setType(URI.create("https://vros.example/errors/optimization-unavailable"));
         pd.setTitle(title);
         return pd;
     }
