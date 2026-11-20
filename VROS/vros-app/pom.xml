@@ -17,6 +17,10 @@
         <!-- Internal modules -->
         <dependency>
             <groupId>org.vros</groupId>
+            <artifactId>vros-contracts</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.vros</groupId>
             <artifactId>vros-domain</artifactId>
         </dependency>
         <dependency>
@@ -40,6 +44,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-hateoas</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
 
         <!-- Spring Security: OAuth2 Resource Server (Keycloak-issued JWTs only) -->
@@ -120,6 +128,16 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-kafka-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
