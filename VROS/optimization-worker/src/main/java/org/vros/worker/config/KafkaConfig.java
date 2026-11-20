@@ -104,4 +104,19 @@ public class KafkaConfig {
     public NewTopic optimizationRequestsDltTopic() {
         return TopicBuilder.name("vros.optimization.requests-dlt").partitions(3).replicas(1).build();
     }
+
+    @Bean
+    public NewTopic optimizationRequestsRetry0Topic() {
+        return TopicBuilder.name("vros.optimization.requests-retry-0").partitions(6).replicas(1).build();
+    }
+
+    @Bean
+    public NewTopic optimizationRequestsRetry1Topic() {
+        return TopicBuilder.name("vros.optimization.requests-retry-1").partitions(6).replicas(1).build();
+    }
+
+    @Bean
+    public NewTopic optimizationRequestsRetry2Topic() {
+        return TopicBuilder.name("vros.optimization.requests-retry-2").partitions(6).replicas(1).build();
+    }
 }

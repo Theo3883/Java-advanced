@@ -110,4 +110,14 @@ public class KafkaConfig {
     public NewTopic optimizationResultsDltTopic() {
         return TopicBuilder.name(OptimizationTopics.RESULTS_DLT).partitions(1).replicas(1).build();
     }
+
+    @Bean
+    public NewTopic optimizationResultsRetry0Topic() {
+        return TopicBuilder.name(OptimizationTopics.RESULTS + "-retry-0").partitions(3).replicas(1).build();
+    }
+
+    @Bean
+    public NewTopic optimizationResultsRetry1Topic() {
+        return TopicBuilder.name(OptimizationTopics.RESULTS + "-retry-1").partitions(3).replicas(1).build();
+    }
 }
