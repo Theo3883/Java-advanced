@@ -1,0 +1,119 @@
+{
+  "realm": "vros",
+  "enabled": true,
+  "displayName": "VROS",
+  "displayNameHtml": "<strong>VROS</strong> - Vehicle Routing Optimization System",
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 300,
+  "accessTokenLifespanForImplicitFlow": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "roles": {
+    "realm": [
+      {
+        "name": "ADMIN",
+        "description": "Full operational and administrative access to VROS"
+      },
+      {
+        "name": "CUSTOMER",
+        "description": "Access to own profile and owned delivery requests"
+      },
+      {
+        "name": "DRIVER",
+        "description": "Access to assigned vehicle, deliveries, and route status"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "vros-api",
+      "name": "VROS API Resource Server",
+      "description": "Public OIDC client used by VROS clients to obtain access tokens",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": false,
+      "attributes": {
+        "access.token.lifespan": "300",
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "id": "vros-audience-mapper",
+          "name": "vros-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "vros-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin_user",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "admin@vros.com",
+      "firstName": "VROS",
+      "lastName": "Administrator",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ADMIN"]
+    },
+    {
+      "username": "driver_user",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "driver@vros.com",
+      "firstName": "VROS",
+      "lastName": "Driver",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "driver123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["DRIVER"]
+    },
+    {
+      "username": "customer_user",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "customer@vros.com",
+      "firstName": "VROS",
+      "lastName": "Customer",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "customer123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["CUSTOMER"]
+    }
+  ]
+}

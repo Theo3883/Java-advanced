@@ -17,6 +17,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
  *   <li>application must not depend on infrastructure or api</li>
  *   <li>api must not depend on infrastructure</li>
  *   <li>domain.port classes must be interfaces</li>
+ *   <li>security must not leak into domain or application</li>
  * </ul>
  */
 class ArchitectureTest {
@@ -62,6 +63,23 @@ class ArchitectureTest {
     void domain_ports_should_be_interfaces() {
         ArchRule rule = classes().that().resideInAPackage("org.vros.domain.port")
                 .should().beInterfaces();
+        rule.check(classes);
+    }
+
+    @Test
+    void security_classes_must_not_leak_into_domain_or_application() {
+        ArchRule rule = noClasses().that().resideInAnyPackage("org.vros.domain..", "org.vros.application..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "org.springframework.security..",
+                        "org.vros.security.."
+                );
+        rule.check(classes);
+    }
+
+    @Test
+    void domain_must_not_depend_on_any_spring_framework() {
+        ArchRule rule = noClasses().that().resideInAPackage("org.vros.domain..")
+                .should().dependOnClassesThat().resideInAPackage("org.springframework..");
         rule.check(classes);
     }
 }

@@ -11,6 +11,8 @@ public class DeliveryResponse {
     private Long id;
     private Long customerId;
     private String customerName;
+    private Long assignedDriverId;
+    private String assignedDriverName;
     private int quantity;
     private String notes;
     private LocalDateTime timestamp;

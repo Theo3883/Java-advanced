@@ -16,6 +16,7 @@ import org.vros.application.service.DriverService;
 import org.vros.application.service.VehicleService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -63,6 +64,7 @@ public class VehicleController {
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('DRIVER') and @ownershipChecker.isVehicleDriver(authentication, #id))")
     @Operation(summary = "Update a vehicle")
     public VehicleResponse update(@PathVariable Long id, @Valid @RequestBody VehicleRequest req) {
         Vehicle existing = vehicleService.findById(id)

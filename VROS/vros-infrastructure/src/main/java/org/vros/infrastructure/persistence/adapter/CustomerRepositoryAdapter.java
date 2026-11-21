@@ -52,7 +52,7 @@ public class CustomerRepositoryAdapter implements CustomerRepository {
 
     @Override
     public Optional<Customer> findByIdWithDeliveries(Long id) {
-        return jpaRepo.findByIdWithDeliveries(id).map(EntityMapper::toDomain);
+        return jpaRepo.findByIdWithDeliveries(id).map(EntityMapper::toDomainWithDeliveries);
     }
 
     @Override

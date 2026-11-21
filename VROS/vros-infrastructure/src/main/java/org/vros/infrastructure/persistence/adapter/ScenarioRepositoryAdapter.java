@@ -50,6 +50,14 @@ public class ScenarioRepositoryAdapter implements ScenarioRepository {
     }
 
     @Override
+    public boolean existsByDeliveryIdAndDriverSubject(Long deliveryId, String keycloakSubject) {
+        if (deliveryId == null || keycloakSubject == null) {
+            return false;
+        }
+        return jpaRepo.existsByDeliveryIdAndDriverSubject(deliveryId, keycloakSubject);
+    }
+
+    @Override
     @Transactional
     public void deleteById(Long id) {
         jpaRepo.deleteById(id);

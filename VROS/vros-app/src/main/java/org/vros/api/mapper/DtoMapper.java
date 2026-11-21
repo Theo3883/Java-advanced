@@ -46,6 +46,8 @@ public final class DtoMapper {
                 .id(d.getId())
                 .customerId(d.getCustomer() != null ? d.getCustomer().getId() : null)
                 .customerName(d.getCustomer() != null ? d.getCustomer().getName() : null)
+                .assignedDriverId(d.getAssignedDriver() != null ? d.getAssignedDriver().getId() : null)
+                .assignedDriverName(d.getAssignedDriver() != null ? d.getAssignedDriver().getName() : null)
                 .quantity(d.getQuantity())
                 .notes(d.getNotes())
                 .timestamp(d.getTimestamp())
