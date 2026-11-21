@@ -109,17 +109,3 @@ results are harmless. See [benchmark.md](benchmark.md) for the measured trade-of
 - With multiple VROS instances, the shared `vros-api` consumer group delivers each progress event
   to only one instance. Use a per-instance group (with idempotent DB updates), a pub/sub fan-out
   (e.g. Redis), or a STOMP broker relay for WebSocket fan-out.
-
-## Tests
-
-```bash
-# Fast unit suite
-./mvnw test
-
-# Unit tests + embedded-Kafka integration tests (worker retry/DLQ, VROS consumers)
-./mvnw verify
-```
-
-The embedded-Kafka tests live in `optimization-worker` (`OptimizationRequestListenerIT`,
-`RetryAndDlqIT`) and `vros-app` (`OptimizationKafkaIT`) and are wired through the Maven Failsafe
-plugin.
