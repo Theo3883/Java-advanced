@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>VROS Optimization Live Demo</title>
+    <style>
+        :root { color-scheme: light dark; }
+        body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; max-width: 920px; margin: 2rem auto; padding: 0 1rem; }
+        h1 { font-size: 1.4rem; }
+        .row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; margin: .75rem 0; }
+        input { padding: .45rem .6rem; border: 1px solid #8888; border-radius: .4rem; min-width: 22rem; }
+        button { padding: .45rem .9rem; border-radius: .4rem; border: 1px solid #8888; cursor: pointer; }
+        #status { padding: .5rem .75rem; border-radius: .4rem; background: #8881; font-family: ui-monospace, monospace; }
+        #log { background: #111; color: #d6f5d6; padding: .75rem; border-radius: .5rem; height: 22rem; overflow: auto; font: 12px/1.45 ui-monospace, monospace; }
+        .muted { opacity: .7; font-size: .9rem; }
+    </style>
+</head>
+<body>
+<h1>VROS Optimization Live Demo</h1>
+<p class="muted">
+    Submits a scenario to <code>POST /api/v1/optimization/jobs</code>, then subscribes to
+    <code>/topic/optimization/{jobId}</code> over STOMP.
+    In the <code>dev</code> profile no token is required; in other profiles paste a Keycloak access token.
+</p>
+
+<div class="row">
+    <label>Scenario ID <input id="scenarioId" type="number" value="1" min="1"/></label>
+    <button id="submit">Submit job</button>
+</div>
+<div class="row">
+    <label>Access token (optional in dev) <input id="token" type="password" placeholder="Bearer token"/></label>
+</div>
+<div class="row">
+    <button id="connect">Connect STOMP</button>
+    <button id="disconnect">Disconnect</button>
+    <span id="status">idle</span>
+</div>
+
+<h2 style="font-size:1rem">Events</h2>
+<pre id="log"></pre>
+
+<script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7/bundles/stomp.umd.min.js"></script>
+<script>
+    const logElement = document.getElementById('log');
+    const statusElement = document.getElementById('status');
+    const tokenInput = document.getElementById('token');
+    const scenarioInput = document.getElementById('scenarioId');
+
+    // Allow http://localhost:8080/optimization-demo.html?scenarioId=9
+    const scenarioParam = new URLSearchParams(location.search).get('scenarioId');
+    if (scenarioParam) {
+        scenarioInput.value = scenarioParam;
+    }
+
+    let client = null;
+    let subscription = null;
+
+    function log(message, data) {
+        const line = new Date().toISOString() + '  ' + message
+            + (data === undefined ? '' : '  ' + (typeof data === 'string' ? data : JSON.stringify(data)));
+        logElement.textContent = line + '\n' + logElement.textContent;
+    }
+
+    function setStatus(value) {
+        statusElement.textContent = value;
+    }
+
+    function authHeaders() {
+        const token = tokenInput.value.trim();
+        return token ? { Authorization: 'Bearer ' + token.replace(/^Bearer\s+/i, '') } : {};
+    }
+
+    function connect(jobId) {
+        if (client && client.active) {
+            subscribe(jobId);
+            return;
+        }
+        const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+        client = new StompJs.Client({
+            brokerURL: protocol + '://' + location.host + '/ws',
+            connectHeaders: authHeaders(),
+            reconnectDelay: 2000,
+            debug: () => {}
+        });
+        client.onConnect = () => {
+            setStatus('connected');
+            log('STOMP connected');
+            subscribe(jobId);
+        };
+        client.onStompError = frame => {
+            setStatus('STOMP error');
+            log('STOMP error', frame.headers.message || frame.body);
+        };
+        client.onWebSocketClose = () => setStatus('disconnected');
+        client.activate();
+    }
+
+    function subscribe(jobId) {
+        if (!client || !client.active) {
+            return;
+        }
+        if (subscription) {
+            subscription.unsubscribe();
+        }
+        const destination = '/topic/optimization/' + jobId;
+        subscription = client.subscribe(destination, message => {
+            log('event on ' + destination, JSON.parse(message.body));
+        });
+        log('subscribed', destination);
+    }
+
+    if (location.protocol === 'file:') {
+        log('ERROR: this page was opened as a local file. '
+            + 'Open http://localhost:8080/optimization-demo.html instead, '
+            + 'otherwise relative API calls cannot reach VROS.');
+    }
+
+    document.getElementById('submit').addEventListener('click', async () => {
+        const scenarioId = Number(scenarioInput.value);
+        const endpoint = new URL('/api/v1/optimization/jobs', location.href).href;
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...authHeaders() },
+                body: JSON.stringify({ scenarioId })
+            });
+            const body = await response.json();
+            if (!response.ok) {
+                log('submit failed HTTP ' + response.status, body);
+                return;
+            }
+            log('submitted job', body);
+            connect(body.jobId);
+        } catch (error) {
+            log('submit error POST ' + endpoint, String(error));
+        }
+    });
+
+    document.getElementById('connect').addEventListener('click', () => {
+        const jobId = prompt('Job id to subscribe to (leave empty to only connect)');
+        connect(jobId);
+    });
+
+    document.getElementById('disconnect').addEventListener('click', () => {
+        if (subscription) {
+            subscription.unsubscribe();
+            subscription = null;
+        }
+        if (client) {
+            client.deactivate();
+            client = null;
+        }
+        setStatus('idle');
+    });
+</script>
+</body>
+</html>

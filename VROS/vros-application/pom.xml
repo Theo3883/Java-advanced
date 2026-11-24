@@ -17,6 +17,10 @@
         <!-- Internal -->
         <dependency>
             <groupId>org.vros</groupId>
+            <artifactId>vros-contracts</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.vros</groupId>
             <artifactId>vros-domain</artifactId>
         </dependency>
 

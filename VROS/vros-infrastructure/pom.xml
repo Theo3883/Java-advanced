@@ -17,11 +17,39 @@
         <!-- Internal -->
         <dependency>
             <groupId>org.vros</groupId>
+            <artifactId>vros-contracts</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.vros</groupId>
             <artifactId>vros-domain</artifactId>
         </dependency>
         <dependency>
             <groupId>org.vros</groupId>
             <artifactId>vros-application</artifactId>
+        </dependency>
+
+        <!-- Kafka + JSON -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-kafka</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-json</artifactId>
+        </dependency>
+
+        <!-- Spring Kafka's JSON serde still uses Jackson 2; Boot 4 defaults to Jackson 3. -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
 
         <!-- Spring Boot -->

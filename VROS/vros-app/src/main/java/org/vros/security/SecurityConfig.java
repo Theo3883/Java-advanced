@@ -88,6 +88,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/v1/scenarios/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/scenarios/**").hasRole("ADMIN")
 
+                        // Optimization: ADMIN submits; ADMIN & DRIVER can read
+                        .requestMatchers(HttpMethod.POST, "/api/v1/optimization/jobs").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/optimization/**").hasAnyRole("ADMIN", "DRIVER")
+
+                        // WebSocket handshake; STOMP CONNECT performs JWT validation
+                        .requestMatchers("/ws", "/ws/**").permitAll()
+
                         // Self-service onboarding
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/users/me/customer-profile").hasRole("CUSTOMER")

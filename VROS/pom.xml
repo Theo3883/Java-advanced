@@ -18,10 +18,12 @@
     <description>Vehicle Routing Optimization System - Multi-Module Clean Architecture</description>
 
     <modules>
+        <module>vros-contracts</module>
         <module>vros-domain</module>
         <module>vros-application</module>
         <module>vros-infrastructure</module>
         <module>vros-app</module>
+        <module>optimization-worker</module>
     </modules>
 
     <properties>
@@ -39,6 +41,11 @@
     <dependencyManagement>
         <dependencies>
             <!-- Internal modules -->
+            <dependency>
+                <groupId>org.vros</groupId>
+                <artifactId>vros-contracts</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.vros</groupId>
                 <artifactId>vros-domain</artifactId>
