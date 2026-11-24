@@ -1,14 +1,24 @@
 ### VROS optimization API
-### Dev profile bypasses Keycloak. For other profiles set the bearer token below.
+###
+### Local setup uses the `dev` profile, which bypasses Keycloak entirely.
+### Requests below therefore send NO Authorization header: an empty
+### `Authorization: Bearer ` value is rejected by Spring as malformed.
+###
+### For a non-dev profile, get a real token from http/keycloak-auth.http
+### (or POST to Keycloak's token endpoint), paste it into @token, and
+### uncomment the `Authorization: Bearer {{token}}` lines.
+###
+### @scenarioId = 9 matches the scenario seeded in the local database
+### ("Bucharest Sector 1 High-Density Route"). Change it if your DB differs.
 @baseUrl = http://localhost:8080
 @token =
-@scenarioId = 1
+@scenarioId = 9
 
 ### Submit an optimization job (ADMIN in prod; open in dev)
 # @name submit
 POST {{baseUrl}}/api/v1/optimization/jobs
 Content-Type: application/json
-Authorization: Bearer {{token}}
+# Authorization: Bearer {{token}}
 
 {
   "scenarioId": {{scenarioId}}
@@ -17,19 +27,19 @@ Authorization: Bearer {{token}}
 ### Job status
 @jobId = {{submit.response.body.jobId}}
 GET {{baseUrl}}/api/v1/optimization/jobs/{{jobId}}
-Authorization: Bearer {{token}}
+# Authorization: Bearer {{token}}
 
 ### Solution (409 until COMPLETED)
 GET {{baseUrl}}/api/v1/optimization/jobs/{{jobId}}/solution
-Authorization: Bearer {{token}}
+# Authorization: Bearer {{token}}
 
 ### List jobs for a scenario
 GET {{baseUrl}}/api/v1/optimization/jobs?scenarioId={{scenarioId}}
-Authorization: Bearer {{token}}
+# Authorization: Bearer {{token}}
 
 ### List all failed jobs
 GET {{baseUrl}}/api/v1/optimization/jobs?status=FAILED
-Authorization: Bearer {{token}}
+# Authorization: Bearer {{token}}
 
 ### Health
 GET {{baseUrl}}/actuator/health

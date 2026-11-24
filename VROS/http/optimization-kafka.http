@@ -38,14 +38,22 @@
 ###   ./mvnw -pl optimization-worker spring-boot:run
 ###
 ###   Seed a scenario first (see http/scenarios.http) and set @scenarioId.
+###   Local DB currently has scenario 9 only.
 ###   Kafka UI: http://localhost:8090  (cluster name: vros)
+###
+### Authentication:
+###   With the `dev` profile Keycloak is bypassed, so no Authorization header
+###   is sent below. An empty `Authorization: Bearer ` value is rejected by
+###   Spring as malformed, which is why the header lines are commented out.
+###   For a non-dev profile, fetch a token (http/keycloak-auth.http), set
+###   @token, and uncomment the `# Authorization: Bearer {{token}}` lines.
 ### ===========================================================================
 
 @baseUrl = http://localhost:8080
 @workerUrl = http://localhost:8082
 @kafkaUiUrl = http://localhost:8090
 @token =
-@scenarioId = 1
+@scenarioId = 9
 
 
 ### ===========================================================================
@@ -56,7 +64,7 @@
 # @name submit
 POST {{baseUrl}}/api/v1/optimization/jobs
 Content-Type: application/json
-Authorization: Bearer {{token}}
+# Authorization: Bearer {{token}}
 
 {
   "scenarioId": {{scenarioId}}
@@ -70,7 +78,7 @@ Authorization: Bearer {{token}}
 ### ===========================================================================
 @jobId = {{submit.response.body.jobId}}
 GET {{baseUrl}}/api/v1/optimization/jobs/{{jobId}}
-Authorization: Bearer {{token}}
+# Authorization: Bearer {{token}}
 
 
 ### ===========================================================================
@@ -80,7 +88,7 @@ Authorization: Bearer {{token}}
 ### Returns 409 until the result event has been consumed.
 ### ===========================================================================
 GET {{baseUrl}}/api/v1/optimization/jobs/{{jobId}}/solution
-Authorization: Bearer {{token}}
+# Authorization: Bearer {{token}}
 
 
 ### ===========================================================================
@@ -88,11 +96,11 @@ Authorization: Bearer {{token}}
 ### Every job listed here went through Kafka.
 ### ===========================================================================
 GET {{baseUrl}}/api/v1/optimization/jobs?scenarioId={{scenarioId}}
-Authorization: Bearer {{token}}
+# Authorization: Bearer {{token}}
 
 ### Failed jobs (for example, after a poison message reached the DLT).
 GET {{baseUrl}}/api/v1/optimization/jobs?status=FAILED
-Authorization: Bearer {{token}}
+# Authorization: Bearer {{token}}
 
 
 ### ===========================================================================
