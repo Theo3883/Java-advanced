@@ -1,0 +1,214 @@
+### ===========================================================================
+### VROS optimization - Kafka end-to-end demo
+### ===========================================================================
+###
+### Kafka is not an HTTP protocol. This file demonstrates the Kafka-backed
+### optimization pipeline through the two HTTP surfaces that expose it:
+###
+###   1. VROS REST API
+###      Each call publishes or consumes Kafka events internally:
+###        POST /jobs        -> VROS publishes to vros.optimization.requests
+###        GET  /jobs/{id}   -> state is fed by acks / progress / results
+###        GET  /solution    -> read from the result event
+###
+###   2. Kafka UI internal HTTP API
+###      The UI at http://localhost:8090 is backed by an HTTP API we can query
+###      to inspect topics, partitions, replicas and offsets.
+###
+### Topology:
+###
+###   VROS API ──requests──► Kafka ──► optimization-worker
+###       ▲                                │
+###       └── acks / progress / results ◄──┘
+###
+### Topics:
+###   vros.optimization.requests         6 partitions (key = jobId)
+###   vros.optimization.requests-retry-0/1/2
+###   vros.optimization.requests-dlt
+###   vros.optimization.acks             3 partitions
+###   vros.optimization.progress         3 partitions
+###   vros.optimization.results          3 partitions
+###   vros.optimization.results-retry-0/1
+###   vros.optimization.results-dlt
+###
+### Prerequisites:
+###   docker compose up -d db keycloak kafka kafka-ui
+###   ./mvnw -q -DskipTests install
+###   ./mvnw -pl vros-app spring-boot:run -Dspring-boot.run.profiles=dev
+###   ./mvnw -pl optimization-worker spring-boot:run
+###
+###   Seed a scenario first (see http/scenarios.http) and set @scenarioId.
+###   Kafka UI: http://localhost:8090  (cluster name: vros)
+### ===========================================================================
+
+@baseUrl = http://localhost:8080
+@workerUrl = http://localhost:8082
+@kafkaUiUrl = http://localhost:8090
+@token =
+@scenarioId = 1
+
+
+### ===========================================================================
+### 1. PRODUCE
+### Submit a job. VROS writes an OptimizationRequestEvent to
+### vros.optimization.requests with the jobId as the record key.
+### ===========================================================================
+# @name submit
+POST {{baseUrl}}/api/v1/optimization/jobs
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "scenarioId": {{scenarioId}}
+}
+
+
+### ===========================================================================
+### 2. CONSUME / OBSERVE
+### The worker consumes the request, publishes ACCEPTED + progress, and VROS
+### consumes those events and updates the job. Poll this until COMPLETED.
+### ===========================================================================
+@jobId = {{submit.response.body.jobId}}
+GET {{baseUrl}}/api/v1/optimization/jobs/{{jobId}}
+Authorization: Bearer {{token}}
+
+
+### ===========================================================================
+### 3. RESULT
+### The worker publishes OptimizationResultEvent to vros.optimization.results.
+### VROS consumes it, stores the solution, and marks the job COMPLETED.
+### Returns 409 until the result event has been consumed.
+### ===========================================================================
+GET {{baseUrl}}/api/v1/optimization/jobs/{{jobId}}/solution
+Authorization: Bearer {{token}}
+
+
+### ===========================================================================
+### 4. LIST
+### Every job listed here went through Kafka.
+### ===========================================================================
+GET {{baseUrl}}/api/v1/optimization/jobs?scenarioId={{scenarioId}}
+Authorization: Bearer {{token}}
+
+### Failed jobs (for example, after a poison message reached the DLT).
+GET {{baseUrl}}/api/v1/optimization/jobs?status=FAILED
+Authorization: Bearer {{token}}
+
+
+### ===========================================================================
+### 5. WORKER-SIDE KAFKA METRICS
+### vros.optimization.jobs.submitted = requests consumed
+### vros.optimization.jobs.completed = results produced
+### vros.optimization.inflight      = solver tasks currently executing
+### ===========================================================================
+GET {{workerUrl}}/actuator/metrics/vros.optimization.jobs.submitted
+
+###
+GET {{workerUrl}}/actuator/metrics/vros.optimization.jobs.completed
+
+###
+GET {{workerUrl}}/actuator/metrics/vros.optimization.inflight
+
+###
+GET {{workerUrl}}/actuator/metrics/vros.optimization.jobs.dead_lettered
+
+###
+GET {{workerUrl}}/actuator/metrics/vros.optimization.solve.duration
+
+### All available worker metrics (including kafka.* client meters).
+GET {{workerUrl}}/actuator/metrics
+
+
+### ===========================================================================
+### 6. VROS-SIDE KAFKA METRICS
+### vros.optimization.jobs.submitted  = requests produced to Kafka
+### vros.optimization.progress.events = progress events consumed from Kafka
+### ===========================================================================
+GET {{baseUrl}}/actuator/metrics/vros.optimization.jobs.submitted
+
+###
+GET {{baseUrl}}/actuator/metrics/vros.optimization.progress.events
+
+###
+GET {{baseUrl}}/actuator/metrics/vros.optimization.jobs.completed
+
+###
+GET {{baseUrl}}/actuator/metrics/vros.optimization.jobs.dead_lettered
+
+### All available API metrics (including kafka.* client meters).
+GET {{baseUrl}}/actuator/metrics
+
+
+### ===========================================================================
+### 7. KAFKA UI HTTP API
+### These are the HTTP endpoints behind http://localhost:8090.
+### They are the UI's internal API, not a stable public contract, but they
+### make it easy to demonstrate Kafka topics and offsets over HTTP.
+### ===========================================================================
+
+### List all topics with partition and replication counts.
+GET {{kafkaUiUrl}}/api/clusters/vros/topics
+
+### Inspect the requests topic: partitions, leaders, min/max offsets.
+GET {{kafkaUiUrl}}/api/clusters/vros/topics/vros.optimization.requests
+
+### Inspect the results topic. offsetMax should have advanced after step 3.
+GET {{kafkaUiUrl}}/api/clusters/vros/topics/vros.optimization.results
+
+### Inspect the acks topic.
+GET {{kafkaUiUrl}}/api/clusters/vros/topics/vros.optimization.acks
+
+### Inspect the progress topic.
+GET {{kafkaUiUrl}}/api/clusters/vros/topics/vros.optimization.progress
+
+### Inspect the request dead-letter topic.
+GET {{kafkaUiUrl}}/api/clusters/vros/topics/vros.optimization.requests-dlt
+
+### Inspect the result dead-letter topic.
+GET {{kafkaUiUrl}}/api/clusters/vros/topics/vros.optimization.results-dlt
+
+
+### ===========================================================================
+### 8. HEALTH
+### ===========================================================================
+GET {{baseUrl}}/actuator/health
+
+###
+GET {{workerUrl}}/actuator/health
+
+
+### ===========================================================================
+### 9. DIRECT KAFKA INSPECTION (not HTTP - run in a terminal)
+### ===========================================================================
+###
+### Consume a topic and print keys + headers:
+###
+### docker compose exec kafka /opt/kafka/bin/kafka-console-consumer.sh \
+###   --bootstrap-server localhost:9092 \
+###   --topic vros.optimization.requests \
+###   --from-beginning \
+###   --property print.key=true \
+###   --property print.headers=true
+###
+### Replace the topic with any of:
+###   vros.optimization.acks
+###   vros.optimization.progress
+###   vros.optimization.results
+###   vros.optimization.requests-retry-0
+###   vros.optimization.requests-dlt
+###   vros.optimization.results-dlt
+###
+### Produce a poison message to exercise retry -> DLT:
+### (use the key of an existing job; insert a QUEUED row first if needed)
+###
+### echo "<jobId>:not-json-poison" | docker compose exec -T kafka \
+###   /opt/kafka/bin/kafka-console-producer.sh \
+###   --bootstrap-server localhost:9092 \
+###   --topic vros.optimization.requests \
+###   --reader-property parse.key=true \
+###   --reader-property key.separator=:
+###
+### Then poll GET /api/v1/optimization/jobs/{jobId} until it becomes FAILED:
+###   "Dead-lettered after retries: failed to deserialize"
+###
+### ===========================================================================
