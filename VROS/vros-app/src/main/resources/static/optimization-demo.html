@@ -47,6 +47,12 @@
     const tokenInput = document.getElementById('token');
     const scenarioInput = document.getElementById('scenarioId');
 
+    // Allow http://localhost:8080/optimization-demo.html?scenarioId=9
+    const scenarioParam = new URLSearchParams(location.search).get('scenarioId');
+    if (scenarioParam) {
+        scenarioInput.value = scenarioParam;
+    }
+
     let client = null;
     let subscription = null;
 
@@ -104,10 +110,17 @@
         log('subscribed', destination);
     }
 
+    if (location.protocol === 'file:') {
+        log('ERROR: this page was opened as a local file. '
+            + 'Open http://localhost:8080/optimization-demo.html instead, '
+            + 'otherwise relative API calls cannot reach VROS.');
+    }
+
     document.getElementById('submit').addEventListener('click', async () => {
         const scenarioId = Number(scenarioInput.value);
+        const endpoint = new URL('/api/v1/optimization/jobs', location.href).href;
         try {
-            const response = await fetch('/api/v1/optimization/jobs', {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...authHeaders() },
                 body: JSON.stringify({ scenarioId })
@@ -120,7 +133,7 @@
             log('submitted job', body);
             connect(body.jobId);
         } catch (error) {
-            log('submit error', String(error));
+            log('submit error POST ' + endpoint, String(error));
         }
     });
 
