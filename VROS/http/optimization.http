@@ -10,6 +10,11 @@
 ###
 ### @scenarioId = 9 matches the scenario seeded in the local database
 ### ("Bucharest Sector 1 High-Density Route"). Change it if your DB differs.
+###
+### IMPORTANT: run "Submit an optimization job" first. Its response handler
+### stores the returned jobId in the global variable {{jobId}}, which the
+### status/solution requests use. If you run those first, the URL becomes
+### /jobs//solution and you get 404/400.
 @baseUrl = http://localhost:8080
 @token =
 @scenarioId = 9
@@ -24,13 +29,20 @@ Content-Type: application/json
   "scenarioId": {{scenarioId}}
 }
 
-### Job status
-@jobId = {{submit.response.body.jobId}}
+> {%
+    client.global.set("jobId", response.body.jobId);
+%}
+
+### Job status (uses the jobId returned by the submit request above)
 GET {{baseUrl}}/api/v1/optimization/jobs/{{jobId}}
 # Authorization: Bearer {{token}}
 
 ### Solution (409 until COMPLETED)
 GET {{baseUrl}}/api/v1/optimization/jobs/{{jobId}}/solution
+# Authorization: Bearer {{token}}
+
+### List ALL jobs, newest first (find job ids here)
+GET {{baseUrl}}/api/v1/optimization/jobs
 # Authorization: Bearer {{token}}
 
 ### List jobs for a scenario
@@ -39,6 +51,12 @@ GET {{baseUrl}}/api/v1/optimization/jobs?scenarioId={{scenarioId}}
 
 ### List all failed jobs
 GET {{baseUrl}}/api/v1/optimization/jobs?status=FAILED
+# Authorization: Bearer {{token}}
+
+### The problem that was sent: the scenario snapshot (deliveries + vehicles)
+### The POST body only references it; the worker receives the full snapshot
+### in the OptimizationRequestEvent on the Kafka requests topic.
+GET {{baseUrl}}/api/v1/scenarios/{{scenarioId}}
 # Authorization: Bearer {{token}}
 
 ### Health

@@ -70,13 +70,17 @@ Content-Type: application/json
   "scenarioId": {{scenarioId}}
 }
 
+> {%
+    client.global.set("jobId", response.body.jobId);
+%}
+
 
 ### ===========================================================================
 ### 2. CONSUME / OBSERVE
 ### The worker consumes the request, publishes ACCEPTED + progress, and VROS
 ### consumes those events and updates the job. Poll this until COMPLETED.
+### Run request 1 first: its response handler sets the {{jobId}} variable.
 ### ===========================================================================
-@jobId = {{submit.response.body.jobId}}
 GET {{baseUrl}}/api/v1/optimization/jobs/{{jobId}}
 # Authorization: Bearer {{token}}
 
@@ -95,6 +99,11 @@ GET {{baseUrl}}/api/v1/optimization/jobs/{{jobId}}/solution
 ### 4. LIST
 ### Every job listed here went through Kafka.
 ### ===========================================================================
+### All jobs, newest first (use this to find job ids).
+GET {{baseUrl}}/api/v1/optimization/jobs
+# Authorization: Bearer {{token}}
+
+### Jobs for one scenario.
 GET {{baseUrl}}/api/v1/optimization/jobs?scenarioId={{scenarioId}}
 # Authorization: Bearer {{token}}
 
